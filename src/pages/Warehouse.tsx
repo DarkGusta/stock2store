@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Package, ArrowUp, ArrowDown, Calendar, Clock, User, Box, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,7 @@ import ProductCard from '@/components/products/ProductCard';
 import { products, inventoryMovements } from '@/utils/mockData';
 import { formatDistanceToNow } from 'date-fns';
 import { Product } from '@/types';
+import ShelfMapping from '@/components/warehouse/ShelfMapping';
 
 const Warehouse = () => {
   const [activeTab, setActiveTab] = useState<string>('inventory');
@@ -258,9 +258,10 @@ const Warehouse = () => {
               onValueChange={setActiveTab} 
               className="w-full"
             >
-              <TabsList className="grid grid-cols-2 mb-4">
+              <TabsList className="grid grid-cols-3 mb-4">
                 <TabsTrigger value="inventory">Inventory</TabsTrigger>
                 <TabsTrigger value="movements">Movements</TabsTrigger>
+                <TabsTrigger value="shelf-map">Shelf Map</TabsTrigger>
               </TabsList>
               
               <TabsContent value="inventory" className="space-y-4">
@@ -329,6 +330,13 @@ const Warehouse = () => {
                     </Table>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="shelf-map">
+                <ShelfMapping 
+                  products={products} 
+                  onProductSelect={setSelectedProduct}
+                />
               </TabsContent>
             </Tabs>
           </div>
