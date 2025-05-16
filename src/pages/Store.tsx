@@ -19,7 +19,7 @@ import { Product } from '@/types';
 
 const Store = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all'); // Changed from empty string to 'all'
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [cartItems, setCartItems] = useState<{product: Product, quantity: number}[]>([]);
@@ -32,7 +32,7 @@ const Store = () => {
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === '' || product.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter; // Changed from empty string to 'all'
     return matchesSearch && matchesCategory && product.stock > 0;
   });
 
@@ -120,7 +120,7 @@ const Store = () => {
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem> {/* Changed value from empty string to 'all' */}
               {categories.map(category => (
                 <SelectItem key={category} value={category}>{category}</SelectItem>
               ))}
@@ -251,7 +251,7 @@ const Store = () => {
               className="mt-4"
               onClick={() => {
                 setSearchTerm('');
-                setCategoryFilter('');
+                setCategoryFilter('all'); // Changed from empty string to 'all'
               }}
             >
               Reset filters
