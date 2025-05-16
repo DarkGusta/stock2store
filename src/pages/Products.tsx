@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Plus, Search, Filter, SlidersHorizontal, Download, RefreshCcw, ChevronDown
@@ -28,7 +27,7 @@ import { Product } from '@/types';
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name-asc');
   const { toast } = useToast();
 
@@ -39,7 +38,7 @@ const Products = () => {
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === '' || product.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
@@ -116,7 +115,7 @@ const Products = () => {
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {categories.map(category => (
                 <SelectItem key={category} value={category}>{category}</SelectItem>
               ))}
@@ -160,7 +159,7 @@ const Products = () => {
           
           <Button variant="outline" onClick={() => {
             setSearchTerm('');
-            setCategoryFilter('');
+            setCategoryFilter('all');
             setSortBy('name-asc');
           }}>
             <RefreshCcw size={16} className="mr-2" />
@@ -206,7 +205,7 @@ const Products = () => {
               className="mt-4"
               onClick={() => {
                 setSearchTerm('');
-                setCategoryFilter('');
+                setCategoryFilter('all');
               }}
             >
               Reset filters
