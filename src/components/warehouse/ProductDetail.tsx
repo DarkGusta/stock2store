@@ -52,10 +52,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onClose }) => {
               <p className="text-sm text-gray-500">Stock Level</p>
               <p className="font-semibold">{product.stock} units</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Barcode</p>
-              <p className="font-mono">{product.barcode}</p>
-            </div>
+            {product.barcode && (
+              <div>
+                <p className="text-sm text-gray-500">Barcode</p>
+                <p className="font-mono">{product.barcode}</p>
+              </div>
+            )}
             <div>
               <p className="text-sm text-gray-500">Location</p>
               <p className="font-medium">{product.location}</p>
