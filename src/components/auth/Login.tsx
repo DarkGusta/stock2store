@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
@@ -28,15 +27,15 @@ const Login: React.FC = () => {
   const [demoCreationStatus, setDemoCreationStatus] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   // If user is already logged in, redirect to dashboard
   useEffect(() => {
-    if (user) {
+    if (user && !loading) {
       console.log("User already logged in, redirecting to dashboard");
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, navigate, loading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +61,7 @@ const Login: React.FC = () => {
         // Use a short timeout to allow the auth context to update first
         setTimeout(() => {
           navigate('/');
-        }, 100);
+        }, 500); // Increased timeout to ensure auth state updates
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -98,6 +97,23 @@ const Login: React.FC = () => {
       setCreatingDemoAccounts(false);
     }
   };
+
+  // If still loading auth state, show loading indicator
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <p>Checking authentication status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render login page if user is already logged in
+  if (user) {
+    return null; // Will be redirected by useEffect
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
