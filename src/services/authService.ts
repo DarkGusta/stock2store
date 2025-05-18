@@ -126,7 +126,7 @@ export const createDemoAccount = async (email: string, password: string, name: s
   try {
     const { user, error } = await signUp(email, password, name);
     
-    if (error || !user) {
+    if (error) {
       console.error("Failed to create demo account:", error);
       return { user: null, error };
     }
@@ -135,18 +135,57 @@ export const createDemoAccount = async (email: string, password: string, name: s
     const validRole = role.toLowerCase() as UserRole;
     
     // Update the user's role in the profiles table
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ role: validRole })
-      .eq('id', user.id);
-    
-    if (profileError) {
-      console.error("Failed to update user role:", profileError);
+    if (user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ role: validRole })
+        .eq('id', user.id);
+      
+      if (profileError) {
+        console.error("Failed to update user role:", profileError);
+      }
+      
+      return { user, error: null };
+    } else {
+      // This happens when the user already exists but Supabase doesn't return an error
+      // Try to find the user by email in the profiles table
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+        
+      if (profileData) {
+        return { user: { id: profileData.id } as User, error: null };
+      }
+      
+      return { user: null, error: new Error("User creation succeeded but user object is null") };
     }
-    
-    return { user, error: null };
   } catch (error) {
     console.error("Error creating demo account:", error);
     return { user: null, error };
   }
 };
+
+// Function to create all demo accounts with delay to avoid rate limiting
+export const createAllDemoAccounts = async (accounts) => {
+  const results = {};
+  
+  for (const account of accounts) {
+    try {
+      // Try to create the account
+      const result = await createDemoAccount(account.email, 'password', account.role + " User", account.role.toLowerCase());
+      results[account.email] = !result.error;
+      
+      // Add delay between account creations to avoid rate limiting
+      if (accounts.indexOf(account) < accounts.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between creations
+      }
+    } catch (err) {
+      console.error(`Failed to create ${account.email}:`, err);
+      results[account.email] = false;
+    }
+  }
+  
+  return results;
+}
