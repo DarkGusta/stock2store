@@ -42,8 +42,9 @@ export const hasPermission = async (resource: string, action: string): Promise<b
     }
 
     // Use the security definer function directly via RPC
+    // Fix: Add type annotation to make TypeScript recognize the parameters
     const { data, error } = await supabase
-      .rpc('user_has_permission', {
+      .rpc<boolean>('user_has_permission', {
         user_id: session.user.id,
         req_resource: resource,
         req_action: action
@@ -73,7 +74,16 @@ export const getUserPermissions = async (): Promise<{resource: string, action: s
       return [];
     }
 
-    // Get all permissions for the user's roles
+    // First get the user's role
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+    
+    const userRole = profileData?.role || 'customer';
+
+    // Then get all permissions for that role
     const { data, error } = await supabase
       .from('permissions')
       .select(`
@@ -86,15 +96,7 @@ export const getUserPermissions = async (): Promise<{resource: string, action: s
           )
         )
       `)
-      .eq('role_permissions.roles.name', 
-          // Get user's role from profiles
-          supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single()
-            .then(({ data }) => data?.role || 'customer')
-      );
+      .eq('role_permissions.roles.name', userRole);
 
     if (error) {
       console.error('Error fetching user permissions:', error);
