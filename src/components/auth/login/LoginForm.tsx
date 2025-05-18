@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { signIn } from '@/services/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LoginFormProps {
   email: string;
