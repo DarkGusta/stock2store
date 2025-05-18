@@ -1,8 +1,15 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserRole } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { cleanupAuthState } from "@/context/AuthContext";
+
+// Helper function to get role based on email
+const getRoleFromEmail = (email: string): UserRole => {
+  if (email.includes('admin')) return 'admin';
+  if (email.includes('warehouse')) return 'warehouse';
+  if (email.includes('analyst')) return 'analyst';
+  return 'customer';
+};
 
 export const getCurrentUser = async () => {
   const { data: { session }, error } = await supabase.auth.getSession();
