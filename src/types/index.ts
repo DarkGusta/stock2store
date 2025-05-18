@@ -85,6 +85,9 @@ export interface Order {
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
+  // Adding products and total for the Index.tsx components
+  products?: number;
+  total?: number;
 }
 
 export interface OrderItem {
@@ -124,4 +127,30 @@ export interface DashboardStats {
   ordersPending: number;
   totalSales: number;
   monthlyRevenue: number[];
+}
+
+// Add these missing interfaces for components that use them
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  image?: string;
+  barcode?: string;
+  location: string;
+  category?: string;
+}
+
+export interface InventoryMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  type: 'in' | 'out' | 'move';
+  quantity: number;
+  from?: string;
+  to?: string;
+  timestamp: Date;
+  userId: string;
+  userName: string;
 }
