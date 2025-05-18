@@ -71,7 +71,9 @@ export const signUp = async (email: string, password: string, name: string) => {
       options: {
         data: {
           name
-        }
+        },
+        // Explicitly don't automatically sign in after registration
+        emailRedirectTo: window.location.origin + '/login'
       }
     });
 
@@ -83,6 +85,9 @@ export const signUp = async (email: string, password: string, name: string) => {
       });
       return { user: null, error };
     }
+
+    // Sign out immediately after registration to prevent automatic login
+    await supabase.auth.signOut();
 
     toast({
       title: "Registration successful",
