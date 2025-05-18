@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
-import { 
-  Plus, Search, RefreshCw, Download, Package
-} from 'lucide-react';
+import { Package, Plus, RefreshCw, Search, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -12,12 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import MainLayout from '@/components/layout/MainLayout';
-import ProductCard from '@/components/products/ProductCard';
-import { useToast } from '@/components/ui/use-toast';
-import { Product } from '@/types';
-import { getProducts } from '@/services/databaseService';
-import { useQuery } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -26,6 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import ProductCard from '@/components/products/ProductCard';
+import { useToast } from '@/components/ui/use-toast';
+import { Product } from '@/types';
+import { getProducts } from '@/services/databaseService';
+import { useQuery } from '@tanstack/react-query';
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -300,10 +297,12 @@ const Inventory = () => {
   );
 };
 
+// We're wrapping the Inventory component with a MainLayout
+// This should solve the duplicate header issue
 const InventoryPage = () => (
-  <MainLayout>
+  <div className="p-4 md:p-6 lg:p-8">
     <Inventory />
-  </MainLayout>
+  </div>
 );
 
 export default InventoryPage;

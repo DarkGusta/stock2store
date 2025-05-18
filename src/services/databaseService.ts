@@ -20,7 +20,7 @@ export const getProducts = async (): Promise<Product[]> => {
         created_at,
         updated_at,
         product_types (id, name),
-        price (amount, effective_from, effective_to, status)
+        price (amount, effective_from, status)
       `);
 
     if (error) {
