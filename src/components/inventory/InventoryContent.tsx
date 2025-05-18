@@ -21,7 +21,7 @@ import {
 import ProductCard from '@/components/products/ProductCard';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types';
-import { getProducts } from '@/services/databaseService';
+import { getProducts } from '@/services'; // Updated import path
 import { useQuery } from '@tanstack/react-query';
 import InventoryHeader from './InventoryHeader';
 import InventoryFilters from './InventoryFilters';
