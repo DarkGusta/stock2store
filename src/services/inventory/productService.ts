@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
@@ -8,7 +9,7 @@ export const getProducts = async (): Promise<Product[]> => {
   console.log('Fetching products from database...');
   
   try {
-    // Try the alternative method first as it seems more reliable
+    // Try the alternative method as it seems more reliable
     return await getProductsAlternative();
   } catch (error) {
     console.error('Alternative method failed, trying original method:', error);
@@ -92,29 +93,6 @@ export const getProducts = async (): Promise<Product[]> => {
       return [];
     }
   }
-};
-
-/**
- * Gets statistics for the dashboard
- */
-export const getDashboardStats = async () => {
-  // This function will be implemented later
-  return {
-    totalProducts: 0,
-    totalStock: 0,
-    lowStockProducts: 0,
-    ordersPending: 0,
-    totalSales: 0,
-    monthlyRevenue: Array(12).fill(0)
-  };
-};
-
-/**
- * Gets recent orders for the dashboard
- */
-export const getOrders = async () => {
-  // This function will be implemented later
-  return [];
 };
 
 /**
@@ -206,34 +184,5 @@ export const getProductsAlternative = async (): Promise<Product[]> => {
   } catch (error) {
     console.error('Error in alternative getProducts method:', error);
     throw error;
-  }
-};
-
-/**
- * Fix for userProfileService to handle 406 errors from Supabase
- */
-export const getUserProfileFixed = async (userId: string) => {
-  try {
-    // Try to get multiple profiles with a filter instead of using .single()
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId);
-    
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return null;
-    }
-    
-    if (!data || data.length === 0) {
-      console.log('No profile found for user:', userId);
-      return null;
-    }
-    
-    // Return the first profile found
-    return data[0];
-  } catch (error) {
-    console.error('Unexpected error fetching user profile:', error);
-    return null;
   }
 };
