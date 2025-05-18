@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   User, 
@@ -259,4 +258,43 @@ export const getLocations = async () => {
     status: loc.status,
     capacity: loc.capacity
   } as Location));
+};
+
+/**
+ * Gets dashboard statistics
+ */
+export const getDashboardStats = async () => {
+  // In a real implementation, this would calculate stats from database tables
+  // For now, we'll return mock data
+  const { data: inventory, error: inventoryError } = await supabase
+    .from('inventory')
+    .select('*');
+  
+  if (inventoryError) throw inventoryError;
+
+  const { data: orders, error: ordersError } = await supabase
+    .from('orders')
+    .select('*');
+    
+  if (ordersError) throw ordersError;
+  
+  const totalProducts = inventory.length;
+  const totalStock = inventory.reduce((acc, item) => acc + item.quantity, 0);
+  const lowStockProducts = inventory.filter(item => item.quantity < 10).length;
+  const ordersPending = orders.filter(order => 
+    order.status === 'pending' || order.status === 'processing'
+  ).length;
+  const totalSales = orders.reduce((acc, order) => acc + Number(order.total_amount), 0);
+  
+  // Mock data for monthly revenue
+  const monthlyRevenue = [12500, 15000, 18000, 17500, 21000, 22000, 24500, 25000, 23000, 25500, 27000, 29000];
+
+  return {
+    totalProducts,
+    totalStock,
+    lowStockProducts,
+    ordersPending,
+    totalSales,
+    monthlyRevenue,
+  };
 };

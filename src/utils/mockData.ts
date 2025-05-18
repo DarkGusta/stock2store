@@ -1,3 +1,4 @@
+
 import { User, Product, InventoryMovement, Order, DashboardStats, UserRole } from '../types';
 
 // Sample Users
@@ -191,24 +192,26 @@ export const orders: Order[] = [
   },
   {
     id: '2',
-    customerId: '3',
+    userId: '3',
+    orderNumber: 'ORD-002',
     products: [
       { productId: '3', quantity: 1, priceAtPurchase: 179.99 },
     ],
     status: 'processing',
-    total: 179.99,
+    totalAmount: 179.99,
     createdAt: new Date('2023-04-05'),
     updatedAt: new Date('2023-04-06'),
   },
   {
     id: '3',
-    customerId: '3',
+    userId: '3',
+    orderNumber: 'ORD-003',
     products: [
       { productId: '6', quantity: 1, priceAtPurchase: 149.99 },
       { productId: '4', quantity: 1, priceAtPurchase: 89.99 },
     ],
     status: 'pending',
-    total: 239.98,
+    totalAmount: 239.98,
     createdAt: new Date('2023-04-10'),
     updatedAt: new Date('2023-04-10'),
   },

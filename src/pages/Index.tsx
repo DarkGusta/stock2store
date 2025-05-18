@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar } from "lucide-react";
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { DatePicker } from "@/components/ui/date-picker";
-import { DashboardStats, Order } from '@/types';
+import { Calendar } from "@/components/ui/calendar";
 import { getDashboardStats, getOrders } from '@/services/databaseService';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,7 +47,7 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     if (dashboardStats) {
-      setStats(dashboardStats);
+      setStats(dashboardStats as DashboardStats);
     }
 
     if (ordersData) {
@@ -63,7 +62,7 @@ const Index: React.FC = () => {
   const getProductCount = (order: Order) => {
     if (!order.products) return 0;
     if (typeof order.products === 'number') return order.products;
-    return (order.products as any[]).length || 0;
+    return Array.isArray(order.products) ? order.products.length : 0;
   };
 
   return (
@@ -77,7 +76,7 @@ const Index: React.FC = () => {
             <CardDescription>Number of products in the inventory</CardDescription>
           </CardHeader>
           <CardContent>
-            {statsLoading ? <Skeleton width={80} /> : (
+            {statsLoading ? <Skeleton className="w-20 h-8" /> : (
               <div className="text-2xl font-semibold">{stats?.totalProducts}</div>
             )}
           </CardContent>
@@ -89,7 +88,7 @@ const Index: React.FC = () => {
             <CardDescription>Total quantity of all products</CardDescription>
           </CardHeader>
           <CardContent>
-            {statsLoading ? <Skeleton width={80} /> : (
+            {statsLoading ? <Skeleton className="w-20 h-8" /> : (
               <div className="text-2xl font-semibold">{stats?.totalStock}</div>
             )}
           </CardContent>
@@ -101,7 +100,7 @@ const Index: React.FC = () => {
             <CardDescription>Orders that are pending or processing</CardDescription>
           </CardHeader>
           <CardContent>
-            {statsLoading ? <Skeleton width={80} /> : (
+            {statsLoading ? <Skeleton className="w-20 h-8" /> : (
               <div className="text-2xl font-semibold">{stats?.ordersPending}</div>
             )}
           </CardContent>
@@ -113,7 +112,7 @@ const Index: React.FC = () => {
             <CardDescription>Total value of all sales</CardDescription>
           </CardHeader>
           <CardContent>
-            {statsLoading ? <Skeleton width={80} /> : (
+            {statsLoading ? <Skeleton className="w-20 h-8" /> : (
               <div className="text-2xl font-semibold">${stats?.totalSales?.toFixed(2)}</div>
             )}
           </CardContent>
@@ -128,7 +127,7 @@ const Index: React.FC = () => {
           </CardHeader>
           <CardContent>
             {statsLoading ? (
-              <Skeleton height={300} />
+              <Skeleton className="w-full h-[300px]" />
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={stats?.monthlyRevenue?.map((revenue, index) => ({
@@ -164,11 +163,11 @@ const Index: React.FC = () => {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="center">
-            <DatePicker
+            <Calendar
               mode="single"
               selected={date}
               onSelect={setDate}
-              className="rounded-md border"
+              className="rounded-md border p-3 pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
@@ -195,7 +194,7 @@ const Index: React.FC = () => {
               {ordersLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center">
-                    <Skeleton width={200} />
+                    <Skeleton className="w-[200px] h-8 mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : ordersError ? (
@@ -208,8 +207,8 @@ const Index: React.FC = () => {
                 orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                    <TableCell>{order.profiles.name}</TableCell>
-                    <TableCell>{format(order.createdAt, 'PPP')}</TableCell>
+                    <TableCell>{order.userName || "Unknown User"}</TableCell>
+                    <TableCell>{format(new Date(order.createdAt), 'PPP')}</TableCell>
                     <TableCell>{order.status}</TableCell>
                     <TableCell>{getProductCount(order)}</TableCell>
                     <TableCell className="text-right">${order.totalAmount.toFixed(2)}</TableCell>
