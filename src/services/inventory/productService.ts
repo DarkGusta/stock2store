@@ -123,6 +123,20 @@ export const getProductsAlternative = async (): Promise<Product[]> => {
     console.log('Inventory data:', inventoryData);
     
     if (!inventoryData || inventoryData.length === 0) {
+      // Let's check if the inventory table exists by describing it
+      console.log('No inventory data found. Checking if table exists...');
+      
+      // Let's also check product_types to see if that has data
+      const { data: productTypes, error: typesError } = await supabase
+        .from('product_types')
+        .select('*');
+        
+      if (typesError) {
+        console.error('Error checking product_types:', typesError);
+      } else {
+        console.log('Product types data:', productTypes);
+      }
+      
       return [];
     }
     
@@ -184,5 +198,99 @@ export const getProductsAlternative = async (): Promise<Product[]> => {
   } catch (error) {
     console.error('Error in alternative getProducts method:', error);
     throw error;
+  }
+};
+
+/**
+ * Create a new product in the inventory
+ */
+export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product | null> => {
+  try {
+    console.log('Creating new product:', product);
+    
+    // First, check if the product category exists or create it
+    let productTypeId;
+    
+    if (product.category) {
+      // Try to find the category
+      const { data: existingTypes } = await supabase
+        .from('product_types')
+        .select('id')
+        .eq('name', product.category)
+        .limit(1);
+      
+      if (existingTypes && existingTypes.length > 0) {
+        productTypeId = existingTypes[0].id;
+      } else {
+        // Create new product type
+        const { data: newType, error: typeError } = await supabase
+          .from('product_types')
+          .insert({ 
+            name: product.category,
+            tax_type: 0.0 // Default tax type
+          })
+          .select('id')
+          .single();
+        
+        if (typeError) {
+          console.error('Error creating product type:', typeError);
+          throw typeError;
+        }
+        
+        productTypeId = newType.id;
+      }
+    }
+    
+    // Create inventory item
+    const { data: inventoryItem, error: inventoryError } = await supabase
+      .from('inventory')
+      .insert({
+        name: product.name,
+        description: product.description,
+        quantity: product.stock,
+        product_type_id: productTypeId
+      })
+      .select('*')
+      .single();
+    
+    if (inventoryError) {
+      console.error('Error creating inventory item:', inventoryError);
+      throw inventoryError;
+    }
+    
+    // If price is provided, create a price record
+    if (product.price) {
+      const { error: priceError } = await supabase
+        .from('price')
+        .insert({
+          inventory_id: inventoryItem.id,
+          amount: product.price,
+          status: true
+        });
+      
+      if (priceError) {
+        console.error('Error creating price:', priceError);
+        // Continue anyway, we have the inventory item
+      }
+    }
+    
+    // Return the new product
+    return {
+      id: inventoryItem.id,
+      name: inventoryItem.name,
+      description: inventoryItem.description || '',
+      price: product.price || 0,
+      stock: inventoryItem.quantity,
+      image: '',
+      category: product.category || 'Uncategorized',
+      location: '',
+      barcode: product.barcode || '',
+      createdAt: new Date(inventoryItem.created_at),
+      updatedAt: new Date(inventoryItem.updated_at)
+    };
+    
+  } catch (error) {
+    console.error('Error in createProduct:', error);
+    return null;
   }
 };
