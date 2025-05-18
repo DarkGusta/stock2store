@@ -20,7 +20,7 @@ const demoAccounts = [
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('password');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -30,6 +30,7 @@ const Login: React.FC = () => {
   // If user is already logged in, redirect to dashboard
   useEffect(() => {
     if (user) {
+      console.log("User already logged in, redirecting to dashboard");
       navigate('/');
     }
   }, [user, navigate]);
@@ -39,6 +40,7 @@ const Login: React.FC = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting login with:", { email });
       const { user, error } = await signIn(email, password);
       
       if (error) {

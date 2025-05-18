@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
         setSession(session);
         
         if (session?.user) {
@@ -59,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .single();
                 
               if (!error && profile) {
+                console.log("Profile fetched successfully:", profile);
                 setUser({
                   id: session.user.id,
                   name: profile.name || 'User',
@@ -88,11 +90,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Then check for existing session
     const initializeAuth = async () => {
       try {
+        console.log("Initializing auth...");
         const { data: { session } } = await supabase.auth.getSession();
         
         setSession(session);
 
         if (session?.user) {
+          console.log("Found existing session for user:", session.user.id);
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
@@ -100,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
             
           if (!error && profile) {
+            console.log("Profile found for existing session:", profile);
             setUser({
               id: session.user.id,
               name: profile.name || 'User',
@@ -108,7 +113,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               createdAt: new Date(profile.created_at),
               updatedAt: new Date(profile.updated_at)
             });
+          } else {
+            console.error("Error fetching profile for existing session:", error);
           }
+        } else {
+          console.log("No existing session found");
         }
       } catch (error) {
         console.error('Error initializing auth:', error);

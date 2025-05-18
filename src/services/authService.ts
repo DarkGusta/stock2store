@@ -36,12 +36,29 @@ export const signIn = async (email: string, password: string) => {
     });
 
     if (error) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive"
+      });
       return { user: null, error };
     }
+
+    // Successfully signed in
+    toast({
+      title: "Login successful",
+      description: `Welcome back!`,
+      variant: "default"
+    });
 
     return { user: data.user, error: null };
   } catch (error) {
     console.error("Unexpected error during sign in:", error);
+    toast({
+      title: "Login failed",
+      description: "An unexpected error occurred",
+      variant: "destructive"
+    });
     return { user: null, error };
   }
 };
