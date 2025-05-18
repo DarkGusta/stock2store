@@ -16,7 +16,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import MainLayout from "./components/layout/MainLayout";
 
 // Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, path }: { children: React.ReactNode, path: string }) => {
   const { user, loading } = useAuth();
   
   if (loading) {
@@ -32,6 +32,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
   
+  // Redirect customer users to the store page when they try to access the dashboard
+  if (path === '/' && user.role === 'customer') {
+    return <Navigate to="/store" replace />;
+  }
+  
   return <MainLayout>{children}</MainLayout>;
 };
 
@@ -43,27 +48,27 @@ const AppRoutes = () => {
       
       {/* Protected routes */}
       <Route path="/" element={
-        <ProtectedRoute>
+        <ProtectedRoute path="/">
           <Index />
         </ProtectedRoute>
       } />
       <Route path="/products" element={
-        <ProtectedRoute>
+        <ProtectedRoute path="/products">
           <Products />
         </ProtectedRoute>
       } />
       <Route path="/warehouse" element={
-        <ProtectedRoute>
+        <ProtectedRoute path="/warehouse">
           <Warehouse />
         </ProtectedRoute>
       } />
       <Route path="/store" element={
-        <ProtectedRoute>
+        <ProtectedRoute path="/store">
           <Store />
         </ProtectedRoute>
       } />
       <Route path="/analytics" element={
-        <ProtectedRoute>
+        <ProtectedRoute path="/analytics">
           <Analytics />
         </ProtectedRoute>
       } />
