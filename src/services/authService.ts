@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { toast } from "@/components/ui/use-toast";
+import { cleanupAuthState } from "@/context/AuthContext";
 
 export const getCurrentUser = async () => {
   const { data: { session }, error } = await supabase.auth.getSession();
@@ -18,34 +19,38 @@ export const getCurrentUser = async () => {
 
 export const signIn = async (email: string, password: string) => {
   try {
+    // Clean up existing auth state to prevent conflicts
+    cleanupAuthState();
+    
+    // Attempt to sign out any existing sessions
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (err) {
+      // Continue even if this fails
+      console.log("Pre-auth signout failed, continuing:", err);
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (error) {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive"
-      });
       return { user: null, error };
     }
 
     return { user: data.user, error: null };
   } catch (error) {
     console.error("Unexpected error during sign in:", error);
-    toast({
-      title: "Login failed",
-      description: "An unexpected error occurred. Please try again.",
-      variant: "destructive"
-    });
     return { user: null, error };
   }
 };
 
 export const signUp = async (email: string, password: string, name: string) => {
   try {
+    // Clean up existing auth state
+    cleanupAuthState();
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -74,41 +79,27 @@ export const signUp = async (email: string, password: string, name: string) => {
     return { user: data.user, error: null };
   } catch (error) {
     console.error("Unexpected error during sign up:", error);
-    toast({
-      title: "Registration failed",
-      description: "An unexpected error occurred. Please try again.",
-      variant: "destructive"
-    });
     return { user: null, error };
   }
 };
 
 export const signOut = async () => {
   try {
-    const { error } = await supabase.auth.signOut();
+    // Clean up auth state first
+    cleanupAuthState();
+    
+    const { error } = await supabase.auth.signOut({ scope: 'global' });
     
     if (error) {
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive"
-      });
       return { error };
     }
     
-    toast({
-      title: "Signed out successfully",
-      variant: "default"
-    });
+    // Force reload to ensure clean state
+    window.location.href = '/login';
     
     return { error: null };
   } catch (error) {
     console.error("Unexpected error during sign out:", error);
-    toast({
-      title: "Sign out failed",
-      description: "An unexpected error occurred. Please try again.",
-      variant: "destructive"
-    });
     return { error };
   }
 };
