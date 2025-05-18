@@ -47,22 +47,10 @@ const Login: React.FC = () => {
       const { user, error } = await signIn(email, password);
       
       if (error) {
-        toast({
-          title: "Login failed",
-          description: error.message || "Invalid email or password. Try with password: 'password'",
-          variant: "destructive"
-        });
+        console.error("Login error:", error);
       } else if (user) {
-        toast({
-          title: "Login successful",
-          description: `Welcome back!`,
-        });
-        
-        console.log("Successfully logged in, redirecting to home...");
-        // Use a short timeout to allow the auth context to update first
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 1000); // Increased timeout to ensure auth state updates
+        // Successfully logged in - navigate will happen automatically via AuthContext effect
+        console.log("Login successful, user:", user);
       }
     } catch (error) {
       console.error("Login error:", error);
