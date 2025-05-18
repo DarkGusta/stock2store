@@ -35,7 +35,7 @@ export interface Location {
   id: string;
   shelfNumber: string;
   slotNumber: string;
-  status: string;
+  status: boolean; // Changed from string to boolean to match database schema
   capacity?: number;
 }
 
@@ -52,7 +52,7 @@ export interface Inventory {
   name: string;
   description?: string;
   quantity: number;
-  status: string;
+  status: boolean; // Changed from string to boolean to match database schema
   createdAt: Date;
   updatedAt: Date;
 }
