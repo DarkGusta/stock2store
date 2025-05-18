@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { createProduct } from '@/services';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const InventoryEmptyState: React.FC = () => {
   const { toast } = useToast();
@@ -17,34 +18,108 @@ const InventoryEmptyState: React.FC = () => {
     });
     
     try {
-      const result = await createProduct({
-        name: "Sample Product",
-        description: "This is a test product created to verify database connectivity",
-        price: 19.99,
-        stock: 5,
-        category: "Test Products",
-        image: "",
-        location: "",
-        barcode: "TEST-12345"
-      });
+      // First check if the test product category exists
+      const { data: existingCategories } = await supabase
+        .from('product_types')
+        .select('id, name')
+        .eq('name', 'Test Products')
+        .limit(1);
       
-      if (result) {
-        toast({
-          title: "Success!",
-          description: "Sample product was created successfully.",
-          variant: "default",
-        });
-        // Refresh product data
-        queryClient.invalidateQueries({ queryKey: ['inventory-products'] });
+      console.log("Checking for existing category:", existingCategories);
+      
+      let categoryId;
+      
+      if (existingCategories && existingCategories.length > 0) {
+        // Use existing category
+        categoryId = existingCategories[0].id;
+        console.log("Using existing category with ID:", categoryId);
       } else {
+        // Try to create the category - this might fail if RLS blocks it
+        try {
+          console.log("Creating new product type category...");
+          const { data: newCategory, error: categoryError } = await supabase
+            .from('product_types')
+            .insert({ name: 'Test Products', tax_type: 0.0 })
+            .select('id')
+            .single();
+          
+          if (categoryError) {
+            console.error("Error creating category:", categoryError);
+            toast({
+              title: "Category Creation Error",
+              description: "Unable to create product category due to permissions. Please check console and RLS policies.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          categoryId = newCategory.id;
+          console.log("Created new category with ID:", categoryId);
+        } catch (e) {
+          console.error("Exception creating category:", e);
+        }
+      }
+      
+      if (!categoryId) {
         toast({
           title: "Error",
-          description: "Failed to create sample product. Check console for details.",
+          description: "Could not find or create a product category. Check console for details.",
           variant: "destructive",
         });
+        return;
       }
+      
+      // Now create the inventory item
+      console.log("Creating inventory item with category ID:", categoryId);
+      const { data: inventoryItem, error: inventoryError } = await supabase
+        .from('inventory')
+        .insert({
+          name: "Sample Product",
+          description: "This is a test product created to verify database connectivity",
+          quantity: 5,
+          product_type_id: categoryId
+        })
+        .select('*')
+        .single();
+      
+      if (inventoryError) {
+        console.error('Error creating inventory item:', inventoryError);
+        toast({
+          title: "Error",
+          description: "Failed to create inventory item: " + inventoryError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("Created inventory item:", inventoryItem);
+      
+      // Create a price for the product
+      const { error: priceError } = await supabase
+        .from('price')
+        .insert({
+          inventory_id: inventoryItem.id,
+          amount: 19.99,
+          status: true
+        });
+      
+      if (priceError) {
+        console.error('Error creating price:', priceError);
+        // Continue anyway as we have the inventory item
+      } else {
+        console.log("Created price for inventory item");
+      }
+      
+      toast({
+        title: "Success!",
+        description: "Sample product was created successfully.",
+        variant: "default",
+      });
+      
+      // Refresh product data
+      queryClient.invalidateQueries({ queryKey: ['inventory-products'] });
     } catch (error) {
-      console.error('Error creating sample product:', error);
+      console.error('Error in sample product creation flow:', error);
       toast({
         title: "Error",
         description: "Failed to create sample product: " + (error instanceof Error ? error.message : String(error)),
