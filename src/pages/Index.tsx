@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,6 +63,14 @@ const Index: React.FC = () => {
     if (!order.products) return 0;
     if (typeof order.products === 'number') return order.products;
     return Array.isArray(order.products) ? order.products.length : 0;
+  };
+
+  // Handle date selection with proper type handling
+  const handleDateSelect = (selectedDate: Date | undefined | Date[] | { from: Date; to: Date | undefined }) => {
+    // We only care about single date mode, so we can safely cast to Date
+    if (selectedDate instanceof Date) {
+      setDate(selectedDate);
+    }
   };
 
   return (
@@ -167,7 +174,7 @@ const Index: React.FC = () => {
             <DatePicker
               mode="single"
               selected={date}
-              onSelect={setDate}
+              onSelect={handleDateSelect}
               className="rounded-md border p-3 pointer-events-auto"
             />
           </PopoverContent>
