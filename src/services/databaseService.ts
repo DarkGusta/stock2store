@@ -38,7 +38,7 @@ export const getProducts = async (): Promise<Product[]> => {
     // Map the database response to our Product interface
     const products = data.map(item => {
       // Find the current active price
-      const prices = item.price || [];
+      const prices = Array.isArray(item.price) ? item.price : [];
       let currentPrice = 0;
       
       // Filter for active prices
