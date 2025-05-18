@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
@@ -55,7 +56,6 @@ export const getProducts = async (): Promise<Product[]> => {
         currentPrice = activePrices[0].amount;
       }
 
-      // Create product object
       return {
         id: item.id,
         name: item.name,
