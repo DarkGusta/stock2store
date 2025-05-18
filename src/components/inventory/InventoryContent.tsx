@@ -40,6 +40,7 @@ const InventoryContent = () => {
   const { data: products = [], isLoading, error, refetch } = useQuery({
     queryKey: ['inventory-products'],
     queryFn: getProducts,
+    retryOnError: false  // Disable retry to avoid retrying failed requests
   });
 
   // Log products for debugging
