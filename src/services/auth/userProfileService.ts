@@ -1,7 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserRole } from "@/types";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { getUserProfileFixed } from '@/services/databaseService';
+import { getUserProfileFixed } from '@/services/users/userProfileService';
 
 // Helper function to get role based on email
 export const getRoleFromEmail = (email: string): UserRole => {
