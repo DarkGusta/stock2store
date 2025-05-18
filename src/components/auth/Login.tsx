@@ -4,10 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import LoginCard from './login/LoginCard';
 import LoadingSpinner from './login/LoadingSpinner';
+import { cleanupAuthState } from '@/context/auth';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  
+  // Clean up auth state when loading the login page
+  useEffect(() => {
+    if (!user && !loading) {
+      // If we're on the login page and not logged in, ensure clean auth state
+      cleanupAuthState();
+    }
+  }, []);
 
   // If user is already logged in, redirect to dashboard
   useEffect(() => {

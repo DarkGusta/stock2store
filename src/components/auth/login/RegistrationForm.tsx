@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,11 +58,11 @@ const RegistrationForm: React.FC = () => {
         setPassword('');
         setConfirmPassword('');
         
-        // Explicitly navigate to login page after successful registration
+        // Clear auth state and navigate to login page
         console.log("Registration successful, redirecting to login page");
-        setTimeout(() => {
-          navigate('/login', { replace: true });
-        }, 100);
+        
+        // Force navigation with page refresh to ensure clean auth state
+        window.location.href = '/login';
       }
     } catch (error) {
       toast({
