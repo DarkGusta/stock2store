@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+import { DashboardStats, Order, Product } from '@/types';
 
 /**
  * Gets products for store and products pages by mapping inventory data
@@ -77,5 +79,99 @@ export const getProducts = async (): Promise<Product[]> => {
   } catch (error) {
     console.error('Unexpected error in getProducts:', error);
     throw error;
+  }
+};
+
+/**
+ * Gets statistics for the dashboard
+ */
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  console.log('Fetching dashboard statistics...');
+  
+  try {
+    // Get total products
+    const { count: totalProducts } = await supabase
+      .from('inventory')
+      .select('*', { count: 'exact', head: true });
+    
+    // Get total stock
+    const { data: inventoryData } = await supabase
+      .from('inventory')
+      .select('quantity');
+    
+    const totalStock = inventoryData?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+    
+    // Get pending orders
+    const { count: ordersPending } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    
+    // Get total sales value
+    const { data: ordersData } = await supabase
+      .from('orders')
+      .select('total_amount')
+      .not('status', 'eq', 'cancelled');
+    
+    const totalSales = ordersData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+    
+    // Generate mock monthly revenue for now
+    // In a real app, you would calculate this from actual order data
+    const monthlyRevenue = Array(12).fill(0).map(() => Math.floor(Math.random() * 50000) + 10000);
+    
+    return {
+      totalProducts: totalProducts || 0,
+      totalStock,
+      ordersPending: ordersPending || 0,
+      totalSales,
+      monthlyRevenue
+    };
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    return {
+      totalProducts: 0,
+      totalStock: 0,
+      ordersPending: 0,
+      totalSales: 0,
+      monthlyRevenue: Array(12).fill(0)
+    };
+  }
+};
+
+/**
+ * Gets recent orders for the dashboard
+ */
+export const getOrders = async (): Promise<Order[]> => {
+  console.log('Fetching orders...');
+  
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (error) {
+      console.error('Error fetching orders:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      return [];
+    }
+    
+    // Transform to match our Order interface
+    return data.map((order) => ({
+      id: order.id,
+      orderNumber: order.order_number,
+      userId: order.user_id,
+      status: order.status,
+      totalAmount: order.total_amount,
+      products: [], // We would need to fetch order items separately for real data
+      createdAt: order.created_at
+    }));
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    return [];
   }
 };

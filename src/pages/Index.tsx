@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ const Index: React.FC = () => {
     }
 
     if (ordersData) {
-      setOrders(ordersData);
+      setOrders(ordersData as Order[]);
     }
   }, [dashboardStats, ordersData]);
 
