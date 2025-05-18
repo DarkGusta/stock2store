@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types';
+import { hasPermission } from '@/services/auth/rbacService';
 
 interface NavItemProps {
   name: string;
@@ -35,26 +36,49 @@ interface SidebarNavigationProps {
     href: string;
     icon: React.ElementType;
     allowed: UserRole[];
+    resource?: string;
+    action?: string;
   }[];
   userRole: UserRole;
 }
 
 const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ navigation, userRole }) => {
   const location = useLocation();
-  
-  // Filter navigation items based on user role
-  const filteredNavigation = navigation.filter(item => 
-    item.allowed.includes(userRole)
-  );
+  const [authorizedNavItems, setAuthorizedNavItems] = useState<typeof navigation>([]);
   
   // Function to determine if a nav link is active
   const isActive = (path: string) => {
     return location.pathname === path;
   };
   
+  // Use the permissions system to filter navigation items
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const filteredItems = [];
+      
+      for (const item of navigation) {
+        // If the item has resource and action properties, check permissions
+        if (item.resource && item.action) {
+          const hasAccess = await hasPermission(item.resource, item.action);
+          if (hasAccess) {
+            filteredItems.push(item);
+          }
+        } 
+        // Fall back to role-based check if no resource/action specified
+        else if (item.allowed.includes(userRole)) {
+          filteredItems.push(item);
+        }
+      }
+      
+      setAuthorizedNavItems(filteredItems);
+    };
+    
+    checkPermissions();
+  }, [navigation, userRole]);
+  
   return (
     <nav className="space-y-1">
-      {filteredNavigation.map((item) => (
+      {authorizedNavItems.map((item) => (
         <NavItem
           key={item.name}
           name={item.name}
