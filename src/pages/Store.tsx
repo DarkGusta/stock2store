@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -24,8 +25,8 @@ const Store: React.FC = () => {
           barcode: '', // Barcode info might be in items table
           location: '', // Location info might be in items table
           category: item.product_types.name,
-          createdAt: new Date(item.createdAt),
-          updatedAt: new Date(item.updatedAt),
+          createdAt: new Date(item.created_at),
+          updatedAt: new Date(item.updated_at),
         }));
         setProducts(productsData);
       } catch (error) {
@@ -65,9 +66,6 @@ const Store: React.FC = () => {
                 <p className="text-gray-500">{product.description}</p>
                 <p className="mt-2">Price: ${product.price}</p>
                 <p>Stock: {product.stock}</p>
-                {product.createdAt instanceof Date
-                  ? product.createdAt.getTime()
-                  : new Date((product.createdAt as any)).getTime()}
               </div>
             ))}
           </div>
