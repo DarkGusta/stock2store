@@ -487,7 +487,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: string
+      }
+      user_has_permission: {
+        Args: { user_id: string; req_resource: string; req_action: string }
+        Returns: boolean
+      }
     }
     Enums: {
       damage_report_status: "completed" | "in_progess" | "received"
