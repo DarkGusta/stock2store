@@ -13,6 +13,7 @@ import Analytics from "./pages/Analytics";
 import Login from "./components/auth/Login";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import MainLayout from "./components/layout/MainLayout";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -31,7 +32,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
   
-  return <>{children}</>;
+  return <MainLayout>{children}</MainLayout>;
 };
 
 const AppRoutes = () => {
