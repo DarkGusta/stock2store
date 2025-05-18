@@ -25,17 +25,20 @@ export const getUserProfile = async (supabaseUser: SupabaseUser): Promise<User |
         email: supabaseUser.email || '',
         name: profileData.name || 'User',
         role: profileData.role as UserRole || 'customer',
+        avatar: profileData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name || 'User')}&background=random`,
         createdAt: new Date(profileData.created_at || Date.now()),
         updatedAt: new Date(profileData.updated_at || Date.now())
       };
     }
 
     // Create a default user if profile doesn't exist
+    const name = supabaseUser.user_metadata?.name || 'User';
     return {
       id: supabaseUser.id,
       email: supabaseUser.email || '',
-      name: supabaseUser.user_metadata?.name || 'User',
+      name: name,
       role: getRoleFromEmail(supabaseUser.email || ''),
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
       createdAt: new Date(supabaseUser.created_at || Date.now()),
       updatedAt: new Date(supabaseUser.updated_at || Date.now())
     };
