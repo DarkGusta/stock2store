@@ -32,6 +32,18 @@ export const getProducts = async (): Promise<Product[]> => {
     
     if (!data || data.length === 0) {
       console.log('No products found in database');
+      
+      // Let's try a simpler query to see if there's any data at all
+      const { data: inventoryOnly, error: inventoryError } = await supabase
+        .from('inventory')
+        .select('*');
+        
+      if (inventoryError) {
+        console.error('Error fetching basic inventory:', inventoryError);
+      } else {
+        console.log('Basic inventory check:', inventoryOnly);
+      }
+      
       return [];
     }
 
@@ -42,21 +54,21 @@ export const getProducts = async (): Promise<Product[]> => {
       let currentPrice = 0;
       
       // Filter for active prices
-      const activePrices = prices.filter((p: any) => p.status === true);
+      const activePrices = prices.filter((p: any) => p && p.status === true);
       
       if (activePrices.length > 0) {
         // Sort by effective_from date (newest first) and take the first one
         activePrices.sort((a: any, b: any) => 
           new Date(b.effective_from).getTime() - new Date(a.effective_from).getTime()
         );
-        currentPrice = activePrices[0].amount;
+        currentPrice = activePrices[0].amount || 0;
       }
 
       return {
-        id: item.id,
-        name: item.name,
+        id: item.id || '',
+        name: item.name || 'Unnamed Product',
         description: item.description || '',
-        price: currentPrice,
+        price: currentPrice || 0,
         stock: item.quantity || 0, 
         image: '', // No images yet in the database
         category: item.product_types?.name || 'Uncategorized',
@@ -96,4 +108,96 @@ export const getDashboardStats = async () => {
 export const getOrders = async () => {
   // This function will be implemented later
   return [];
+};
+
+/**
+ * Alternative method to get products that fetches inventory and items separately
+ */
+export const getProductsAlternative = async (): Promise<Product[]> => {
+  console.log('Using alternative method to fetch products...');
+  
+  try {
+    // First get all inventory items
+    const { data: inventoryData, error: inventoryError } = await supabase
+      .from('inventory')
+      .select(`
+        id, 
+        name, 
+        description, 
+        quantity, 
+        created_at, 
+        updated_at, 
+        product_type_id
+      `);
+      
+    if (inventoryError) {
+      console.error('Error fetching inventory:', inventoryError);
+      throw inventoryError;
+    }
+    
+    console.log('Inventory data:', inventoryData);
+    
+    if (!inventoryData || inventoryData.length === 0) {
+      return [];
+    }
+    
+    // Get all product types
+    const { data: productTypes, error: typesError } = await supabase
+      .from('product_types')
+      .select('id, name');
+      
+    if (typesError) {
+      console.error('Error fetching product types:', typesError);
+    }
+    
+    // Create a map of product types for quick lookup
+    const typeMap = new Map();
+    if (productTypes) {
+      productTypes.forEach((type: any) => {
+        typeMap.set(type.id, type.name);
+      });
+    }
+    
+    // Get prices for all inventory items
+    const { data: priceData, error: priceError } = await supabase
+      .from('price')
+      .select('inventory_id, amount, effective_from, status')
+      .eq('status', true);
+      
+    if (priceError) {
+      console.error('Error fetching prices:', priceError);
+    }
+    
+    // Create a map of prices for quick lookup
+    const priceMap = new Map();
+    if (priceData) {
+      priceData.forEach((price: any) => {
+        if (!priceMap.has(price.inventory_id) || 
+            new Date(price.effective_from) > new Date(priceMap.get(price.inventory_id).effective_from)) {
+          priceMap.set(price.inventory_id, price);
+        }
+      });
+    }
+    
+    // Map inventory data to products
+    const products = inventoryData.map((item: any) => ({
+      id: item.id || '',
+      name: item.name || 'Unnamed Product',
+      description: item.description || '',
+      price: (priceMap.get(item.id)?.amount) || 0,
+      stock: item.quantity || 0,
+      image: '',
+      category: typeMap.get(item.product_type_id) || 'Uncategorized',
+      location: '',
+      barcode: '',
+      createdAt: new Date(item.created_at || Date.now()),
+      updatedAt: new Date(item.updated_at || Date.now())
+    }));
+    
+    console.log('Products from alternative method:', products);
+    return products;
+  } catch (error) {
+    console.error('Error in alternative getProducts method:', error);
+    throw error;
+  }
 };
