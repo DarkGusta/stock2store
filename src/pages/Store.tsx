@@ -24,6 +24,8 @@ const Store: React.FC = () => {
     queryFn: getProducts,
   });
 
+  console.log('Store page products:', products);
+
   // Handle errors
   useEffect(() => {
     if (error) {

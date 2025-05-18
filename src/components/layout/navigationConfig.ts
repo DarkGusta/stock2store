@@ -14,8 +14,7 @@ interface NavItem {
 
 export const navigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, allowed: ['admin', 'warehouse', 'analyst'] },
-  { name: 'Products', href: '/products', icon: Package, allowed: ['admin', 'warehouse', 'analyst'] },
-  { name: 'Warehouse', href: '/warehouse', icon: Package, allowed: ['admin', 'warehouse'] },
+  { name: 'Warehouse', href: '/warehouse', icon: Package, allowed: ['admin', 'warehouse', 'analyst'] },
   { name: 'Store', href: '/store', icon: Store, allowed: ['admin', 'customer', 'analyst'] },
   { name: 'Analytics', href: '/analytics', icon: BarChart3, allowed: ['admin', 'analyst'] },
   { name: 'Users', href: '/users', icon: Users, allowed: ['admin'] },
