@@ -40,34 +40,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ email, setEmail }) => {
     }
   };
 
-  const handleResendConfirmation = async () => {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Confirmation email sent",
-          description: "Please check your inbox",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send confirmation email",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -113,19 +85,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ email, setEmail }) => {
           "Sign in"
         )}
       </Button>
-
-      <div className="pt-2">
-        <p className="text-sm text-center text-gray-500">
-          Haven't confirmed your email?{' '}
-          <button 
-            type="button" 
-            onClick={handleResendConfirmation}
-            className="text-blue-600 hover:underline"
-          >
-            Resend confirmation
-          </button>
-        </p>
-      </div>
     </form>
   );
 };
