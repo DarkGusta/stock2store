@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,18 +51,17 @@ const RegistrationForm: React.FC = () => {
           variant: "destructive"
         });
       } else {
-        toast({
-          title: "Registration successful",
-          description: "You can now log in with your credentials.",
-        });
         // Reset form
         setName('');
         setEmail('');
         setPassword('');
         setConfirmPassword('');
         
-        // Redirect to login page
-        navigate('/login', { replace: true });
+        // Explicitly navigate to login page after successful registration
+        console.log("Registration successful, redirecting to login page");
+        setTimeout(() => {
+          navigate('/login', { replace: true });
+        }, 100);
       }
     } catch (error) {
       toast({
