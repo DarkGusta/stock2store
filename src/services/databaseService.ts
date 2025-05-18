@@ -305,23 +305,37 @@ export const getDashboardStats = async () => {
  * to the Product interface
  */
 export const getProducts = async (): Promise<Product[]> => {
+  console.log('Fetching products from database...');
+  
   const { data, error } = await supabase
     .from('inventory')
     .select(`
       *,
       product_types (name),
-      price (amount, effective_from, effective_to)
+      price (amount, effective_from, effective_to, status)
     `);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+
+  console.log('Raw products data:', data);
+  
+  if (!data || data.length === 0) {
+    console.log('No products found in database');
+    return [];
+  }
 
   // Get only the latest price for each product (with no effective_to or the latest effective_to)
-  return data.map(inv => {
+  const products = data.map(inv => {
     // Sort prices by effective_from date (descending) and take the first valid one
     const prices = inv.price || [];
-    const validPrices = prices.filter((p: any) => !p.effective_to || new Date(p.effective_to) > new Date());
+    const validPrices = prices.filter((p: any) => p.status && (!p.effective_to || new Date(p.effective_to) > new Date()));
     validPrices.sort((a: any, b: any) => new Date(b.effective_from).getTime() - new Date(a.effective_from).getTime());
     const currentPrice = validPrices.length > 0 ? validPrices[0].amount : 0;
+
+    console.log(`Product ${inv.name} has ${validPrices.length} valid prices, current price: ${currentPrice}`);
 
     return {
       id: inv.id,
@@ -336,4 +350,7 @@ export const getProducts = async (): Promise<Product[]> => {
       updatedAt: new Date(inv.updated_at || Date.now())
     } as Product;
   });
+
+  console.log('Transformed products:', products);
+  return products;
 };
