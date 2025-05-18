@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Filter, SlidersHorizontal, Download, RefreshCcw, ChevronDown
+  Plus, Search, Filter, SlidersHorizontal, Download, RefreshCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,9 +22,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import MainLayout from '@/components/layout/MainLayout';
 import ProductCard from '@/components/products/ProductCard';
-import { products } from '@/utils/mockData';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types';
+import { getProducts } from '@/services/databaseService';
+import { useQuery } from '@tanstack/react-query';
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,13 +33,30 @@ const Products = () => {
   const [sortBy, setSortBy] = useState('name-asc');
   const { toast } = useToast();
 
+  // Fetch products using React Query
+  const { data: products = [], isLoading, error } = useQuery({
+    queryKey: ['products'],
+    queryFn: getProducts,
+  });
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
   // Get unique categories from products
-  const categories = [...new Set(products.map(product => product.category))];
+  const categories = [...new Set(products.map(product => product.category || 'Uncategorized'))];
 
   // Filter products based on search and category
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (product.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -178,39 +197,48 @@ const Products = () => {
           </Button>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sortedProducts.map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product}
-              onEdit={handleProductEdit}
-              onDelete={handleProductDelete}
-              onSelect={handleProductSelect}
-            />
-          ))}
-        </div>
-
-        {sortedProducts.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
-              <Search size={24} className="text-blue-600" />
-            </div>
-            <h3 className="text-lg font-semibold">No products found</h3>
-            <p className="text-gray-500 mt-1">
-              Try adjusting your search or filter to find what you're looking for.
-            </p>
-            <Button 
-              variant="outline" 
-              className="mt-4"
-              onClick={() => {
-                setSearchTerm('');
-                setCategoryFilter('all');
-              }}
-            >
-              Reset filters
-            </Button>
+        {/* Products Grid with loading state */}
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p>Loading products...</p>
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {sortedProducts.map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product}
+                  onEdit={handleProductEdit}
+                  onDelete={handleProductDelete}
+                  onSelect={handleProductSelect}
+                />
+              ))}
+            </div>
+
+            {sortedProducts.length === 0 && (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
+                  <Search size={24} className="text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold">No products found</h3>
+                <p className="text-gray-500 mt-1">
+                  Try adjusting your search or filter to find what you're looking for.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setCategoryFilter('all');
+                  }}
+                >
+                  Reset filters
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </MainLayout>
