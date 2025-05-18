@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-  Plus, Search, Filter, SlidersHorizontal, Download, RefreshCcw, PackageOpen
+  Plus, Search, RefreshCw, Download, Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,25 +12,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import MainLayout from '@/components/layout/MainLayout';
 import ProductCard from '@/components/products/ProductCard';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types';
 import { getProducts } from '@/services/databaseService';
 import { useQuery } from '@tanstack/react-query';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name-asc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
 
   // Fetch products using React Query
@@ -115,6 +116,13 @@ const Inventory = () => {
     });
   };
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -124,7 +132,7 @@ const Inventory = () => {
         </div>
         <div className="flex gap-2">
           <Button onClick={handleRefresh} variant="outline">
-            <RefreshCcw size={16} className="mr-2" />
+            <RefreshCw size={16} className="mr-2" />
             Refresh
           </Button>
           <Button>
@@ -133,8 +141,8 @@ const Inventory = () => {
           </Button>
         </div>
       </div>
-
-      {/* Filters Bar */}
+      
+      {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-grow">
           <Search className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-500" size={18} />
@@ -160,7 +168,7 @@ const Inventory = () => {
         
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Sort by" />
+            <SelectValue placeholder="Name (A-Z)" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="name-asc">Name (A-Z)</SelectItem>
@@ -172,33 +180,12 @@ const Inventory = () => {
           </SelectContent>
         </Select>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Filter size={16} className="mr-2" /> 
-              More Filters
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <SlidersHorizontal size={16} className="mr-2" />
-              Price Range
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <SlidersHorizontal size={16} className="mr-2" />
-              Stock Status
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
         <Button variant="outline" onClick={() => {
           setSearchTerm('');
           setCategoryFilter('all');
           setSortBy('name-asc');
         }}>
-          <RefreshCcw size={16} className="mr-2" />
+          <RefreshCw size={16} className="mr-2" />
           Reset
         </Button>
       </div>
@@ -214,7 +201,7 @@ const Inventory = () => {
         </Button>
       </div>
 
-      {/* Products Grid with loading state */}
+      {/* Products Display with loading state */}
       {isLoading ? (
         <div className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
@@ -225,7 +212,7 @@ const Inventory = () => {
           {products.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
-                <PackageOpen size={24} className="text-blue-600" />
+                <Package size={24} className="text-blue-600" />
               </div>
               <h3 className="text-lg font-semibold">No products available</h3>
               <p className="text-gray-500 mt-1">
@@ -239,17 +226,53 @@ const Inventory = () => {
               </Button>
             </div>
           ) : sortedProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedProducts.map((product) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product}
-                  onEdit={handleProductEdit}
-                  onDelete={handleProductDelete}
-                  onSelect={handleProductSelect}
-                />
-              ))}
-            </div>
+            viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {sortedProducts.map((product) => (
+                  <ProductCard 
+                    key={product.id} 
+                    product={product}
+                    onEdit={handleProductEdit}
+                    onDelete={handleProductDelete}
+                    onSelect={handleProductSelect}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell>{product.category}</TableCell>
+                      <TableCell>{product.stock}</TableCell>
+                      <TableCell>{formatPrice(product.price)}</TableCell>
+                      <TableCell className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleProductEdit(product.id)}>
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-600" 
+                          onClick={() => handleProductDelete(product.id)}>
+                          Delete
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )
           ) : (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
@@ -277,12 +300,10 @@ const Inventory = () => {
   );
 };
 
-const InventoryPage = () => {
-  return (
-    <MainLayout>
-      <Inventory />
-    </MainLayout>
-  );
-};
+const InventoryPage = () => (
+  <MainLayout>
+    <Inventory />
+  </MainLayout>
+);
 
 export default InventoryPage;

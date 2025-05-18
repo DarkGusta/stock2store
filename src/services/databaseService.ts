@@ -3,8 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
 /**
- * Gets products for store and products pages by mapping inventory data
- * to the Product interface
+ * Gets products for inventory management
  */
 export const getProducts = async (): Promise<Product[]> => {
   console.log('Fetching products from database...');
@@ -43,13 +42,10 @@ export const getProducts = async (): Promise<Product[]> => {
       let currentPrice = 0;
       
       // Filter for active prices
-      const activePrices = prices.filter((p: any) => 
-        p.status === true && 
-        (!p.effective_to || new Date(p.effective_to) > new Date())
-      );
+      const activePrices = prices.filter((p: any) => p.status === true);
       
-      // Sort by effective_from date (newest first) and take the first one
       if (activePrices.length > 0) {
+        // Sort by effective_from date (newest first) and take the first one
         activePrices.sort((a: any, b: any) => 
           new Date(b.effective_from).getTime() - new Date(a.effective_from).getTime()
         );
@@ -83,6 +79,7 @@ export const getProducts = async (): Promise<Product[]> => {
  * Gets statistics for the dashboard
  */
 export const getDashboardStats = async () => {
+  // This function will be implemented later
   return {
     totalProducts: 0,
     totalStock: 0,
@@ -97,5 +94,6 @@ export const getDashboardStats = async () => {
  * Gets recent orders for the dashboard
  */
 export const getOrders = async () => {
+  // This function will be implemented later
   return [];
 };
