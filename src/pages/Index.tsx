@@ -139,7 +139,7 @@ const Index: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -164,7 +164,7 @@ const Index: React.FC = () => {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="center">
-            <Calendar
+            <DatePicker
               mode="single"
               selected={date}
               onSelect={setDate}
@@ -208,7 +208,7 @@ const Index: React.FC = () => {
                 orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                    <TableCell>{order.userName || "Unknown User"}</TableCell>
+                    <TableCell>{order.userId || "Unknown User"}</TableCell>
                     <TableCell>{format(new Date(order.createdAt), 'PPP')}</TableCell>
                     <TableCell>{order.status}</TableCell>
                     <TableCell>{getProductCount(order)}</TableCell>

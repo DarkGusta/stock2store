@@ -9,10 +9,10 @@ import { Calendar as CalendarIcon } from "lucide-react";
 
 export interface DatePickerProps {
   date?: Date;
-  onSelect?: (date: Date | undefined) => void;
+  onSelect?: (date: Date | undefined | Date[] | { from: Date; to: Date | undefined }) => void;
   className?: string;
   mode?: "single" | "range" | "multiple";
-  selected?: Date | Date[] | undefined;
+  selected?: Date | Date[] | { from: Date; to: Date | undefined } | undefined;
 }
 
 export function DatePicker({
@@ -35,8 +35,8 @@ export function DatePicker({
       {mode === "range" && (
         <CalendarComponent
           mode="range"
-          selected={selected as any}
-          onSelect={onSelect as any}
+          selected={selected as { from: Date; to: Date | undefined }}
+          onSelect={onSelect as (date: { from: Date; to: Date | undefined }) => void}
           className="rounded-md border p-3 pointer-events-auto"
         />
       )}
