@@ -25,8 +25,8 @@ const Store: React.FC = () => {
           barcode: '', // Barcode info might be in items table
           location: '', // Location info might be in items table
           category: item.product_types.name,
-          createdAt: new Date(item.created_at),
-          updatedAt: new Date(item.updated_at),
+          createdAt: new Date(item.createdAt || Date.now()),
+          updatedAt: new Date(item.updatedAt || Date.now()),
         }));
         setProducts(productsData);
       } catch (error) {
