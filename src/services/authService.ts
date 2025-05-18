@@ -168,8 +168,8 @@ export const createDemoAccount = async (email: string, password: string, name: s
 };
 
 // Function to create all demo accounts with delay to avoid rate limiting
-export const createAllDemoAccounts = async (accounts) => {
-  const results = {};
+export const createAllDemoAccounts = async (accounts: any[]) => {
+  const results: Record<string, boolean> = {};
   
   for (const account of accounts) {
     try {

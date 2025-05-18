@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
@@ -57,8 +58,11 @@ const Login: React.FC = () => {
           description: `Welcome back!`,
         });
         
-        // Force a refresh to ensure auth state is properly updated
-        window.location.href = '/';
+        console.log("Successfully logged in, redirecting to home...");
+        // Use a short timeout to allow the auth context to update first
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       }
     } catch (error) {
       console.error("Login error:", error);
