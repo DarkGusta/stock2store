@@ -86,7 +86,7 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   // Adding products and total for the Index.tsx components
-  products?: number;
+  products?: number | { productId: string; quantity: number; priceAtPurchase: number }[]; 
   total?: number;
 }
 
@@ -140,6 +140,8 @@ export interface Product {
   barcode?: string;
   location: string;
   category?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface InventoryMovement {
@@ -153,4 +155,6 @@ export interface InventoryMovement {
   timestamp: Date;
   userId: string;
   userName: string;
+  reason: string;
+  performedBy: string;
 }
