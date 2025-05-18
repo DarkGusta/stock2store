@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
@@ -33,7 +34,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     if (user && !loading) {
       console.log("User already logged in, redirecting to dashboard");
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [user, navigate, loading]);
 
@@ -60,8 +61,8 @@ const Login: React.FC = () => {
         console.log("Successfully logged in, redirecting to home...");
         // Use a short timeout to allow the auth context to update first
         setTimeout(() => {
-          navigate('/');
-        }, 500); // Increased timeout to ensure auth state updates
+          navigate('/', { replace: true });
+        }, 1000); // Increased timeout to ensure auth state updates
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -112,7 +113,14 @@ const Login: React.FC = () => {
 
   // Don't render login page if user is already logged in
   if (user) {
-    return null; // Will be redirected by useEffect
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <p>You are already logged in. Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

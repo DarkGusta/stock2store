@@ -111,12 +111,16 @@ export const signOut = async () => {
       return { error };
     }
     
-    // Force reload to ensure clean state
-    window.location.href = '/login';
+    // Force reload to ensure clean state after a delay
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 100);
     
     return { error: null };
   } catch (error) {
     console.error("Unexpected error during sign out:", error);
+    // Force reload anyway
+    window.location.href = '/login';
     return { error };
   }
 };
@@ -156,6 +160,12 @@ export const createDemoAccount = async (email: string, password: string, name: s
         .single();
         
       if (profileData) {
+        // Ensure the role is set correctly
+        await supabase
+          .from('profiles')
+          .update({ role: role.toLowerCase() })
+          .eq('email', email);
+          
         return { user: { id: profileData.id } as User, error: null };
       }
       
@@ -173,8 +183,14 @@ export const createAllDemoAccounts = async (accounts: any[]) => {
   
   for (const account of accounts) {
     try {
-      // Try to create the account
-      const result = await createDemoAccount(account.email, 'password', account.role + " User", account.role.toLowerCase());
+      // Try to create the account with the correct role
+      const result = await createDemoAccount(
+        account.email, 
+        'password', 
+        account.role + " User", 
+        account.role.toLowerCase()
+      );
+      
       results[account.email] = !result.error;
       
       // Add delay between account creations to avoid rate limiting

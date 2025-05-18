@@ -36,6 +36,14 @@ export const cleanupAuthState = () => {
   });
 };
 
+// Helper function to determine the role based on email for demo accounts
+const getRoleFromEmail = (email: string): UserRole => {
+  if (email.includes('admin')) return 'admin';
+  if (email.includes('warehouse')) return 'warehouse';
+  if (email.includes('analyst')) return 'analyst';
+  return 'customer';
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -64,33 +72,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 
               if (!error && profile) {
                 console.log("Profile fetched successfully:", profile);
+                
+                // Ensure the role is correct based on email for demo accounts
+                const expectedRole = session.user.email 
+                  ? getRoleFromEmail(session.user.email) 
+                  : profile.role as UserRole;
+                
                 setUser({
                   id: session.user.id,
                   name: profile.name || 'User',
                   email: session.user.email || '',
-                  role: profile.role as UserRole,
+                  role: expectedRole, // Use expected role based on email
                   createdAt: new Date(profile.created_at),
                   updatedAt: new Date(profile.updated_at)
                 });
               } else if (error) {
                 console.error('Error fetching user profile:', error);
                 // Create a default user object with minimal info when profile isn't found
+                const defaultRole = session.user.email 
+                  ? getRoleFromEmail(session.user.email)
+                  : 'customer' as UserRole;
+                
                 setUser({
                   id: session.user.id,
                   name: session.user.user_metadata?.name || 'User',
                   email: session.user.email || '',
-                  role: 'customer' as UserRole, // Default role
+                  role: defaultRole, // Default role based on email
                   createdAt: new Date(),
                   updatedAt: new Date()
                 });
               } else {
                 // No profile found but also no error (null result)
                 console.log("No profile found for user, creating default user object");
+                const defaultRole = session.user.email 
+                  ? getRoleFromEmail(session.user.email)
+                  : 'customer' as UserRole;
+                
                 setUser({
                   id: session.user.id,
                   name: session.user.user_metadata?.name || 'User',
                   email: session.user.email || '',
-                  role: 'customer' as UserRole, // Default role
+                  role: defaultRole, // Default role based on email
                   createdAt: new Date(),
                   updatedAt: new Date()
                 });
@@ -127,22 +149,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
           if (!error && profile) {
             console.log("Profile found for existing session:", profile);
+            
+            // Ensure the role is correct based on email for demo accounts
+            const expectedRole = session.user.email 
+              ? getRoleFromEmail(session.user.email) 
+              : profile.role as UserRole;
+              
             setUser({
               id: session.user.id,
               name: profile.name || 'User',
               email: session.user.email || '',
-              role: profile.role as UserRole,
+              role: expectedRole, // Use expected role based on email
               createdAt: new Date(profile.created_at),
               updatedAt: new Date(profile.updated_at)
             });
           } else {
             console.log("No profile found or error fetching profile, using default user data");
             // Create a default user object when profile isn't found
+            const defaultRole = session.user.email 
+              ? getRoleFromEmail(session.user.email)
+              : 'customer' as UserRole;
+              
             setUser({
               id: session.user.id,
               name: session.user.user_metadata?.name || 'User',
               email: session.user.email || '',
-              role: 'customer' as UserRole, // Default role
+              role: defaultRole, // Default role based on email
               createdAt: new Date(),
               updatedAt: new Date()
             });
@@ -166,21 +198,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    // Clean up auth state first
-    cleanupAuthState();
-    
     try {
-      // Attempt global sign out (fallback if it fails)
-      await supabase.auth.signOut({ scope: 'global' });
+      setLoading(true); // Set loading state to prevent redirects during signout
+      
+      // Clean up auth state first
+      cleanupAuthState();
+      
+      try {
+        // Attempt global sign out
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (error) {
+        console.error('Error during sign out:', error);
+      }
+      
+      setUser(null);
+      setSession(null);
+      
+      // Force a page reload for a clean state after a small delay
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('Error during sign out process:', error);
+      // Force reload anyway as fallback
+      window.location.href = '/login';
     }
-    
-    setUser(null);
-    setSession(null);
-    
-    // Force a page reload for a clean state
-    window.location.href = '/login';
   };
 
   const value = {
