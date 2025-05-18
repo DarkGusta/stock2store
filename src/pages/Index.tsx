@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 import { getDashboardStats, getOrders } from '@/services/databaseService';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,9 +24,10 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Order, DashboardStats } from '@/types';
 
 const Index: React.FC = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());

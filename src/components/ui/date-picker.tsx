@@ -24,12 +24,30 @@ export function DatePicker({
 }: DatePickerProps) {
   return (
     <div className={cn("grid gap-2", className)}>
-      <CalendarComponent
-        mode={mode}
-        selected={selected || date}
-        onSelect={onSelect}
-        className="rounded-md border p-3 pointer-events-auto"
-      />
+      {mode === "single" && (
+        <CalendarComponent
+          mode="single"
+          selected={selected as Date || date}
+          onSelect={onSelect as (date: Date | undefined) => void}
+          className="rounded-md border p-3 pointer-events-auto"
+        />
+      )}
+      {mode === "range" && (
+        <CalendarComponent
+          mode="range"
+          selected={selected as any}
+          onSelect={onSelect as any}
+          className="rounded-md border p-3 pointer-events-auto"
+        />
+      )}
+      {mode === "multiple" && (
+        <CalendarComponent
+          mode="multiple"
+          selected={selected as Date[]}
+          onSelect={onSelect as (date: Date[] | undefined) => void}
+          className="rounded-md border p-3 pointer-events-auto"
+        />
+      )}
     </div>
   );
 }
