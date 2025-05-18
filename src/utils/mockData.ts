@@ -1,4 +1,3 @@
-
 import { User, Product, InventoryMovement, Order, DashboardStats, UserRole } from '../types';
 
 // Sample Users
@@ -9,6 +8,8 @@ export const users: User[] = [
     email: 'admin@stock2store.com',
     role: 'admin',
     avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=06B6D4&color=fff',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01'),
   },
   {
     id: '2',
@@ -16,6 +17,8 @@ export const users: User[] = [
     email: 'warehouse@stock2store.com',
     role: 'warehouse',
     avatar: 'https://ui-avatars.com/api/?name=Warehouse+Manager&background=0EA5E9&color=fff',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01'),
   },
   {
     id: '3',
@@ -23,6 +26,8 @@ export const users: User[] = [
     email: 'customer@example.com',
     role: 'customer',
     avatar: 'https://ui-avatars.com/api/?name=Customer+Account&background=8B5CF6&color=fff',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01'),
   },
   {
     id: '4',
@@ -30,6 +35,8 @@ export const users: User[] = [
     email: 'analyst@stock2store.com',
     role: 'analyst',
     avatar: 'https://ui-avatars.com/api/?name=Data+Analyst&background=F97316&color=fff',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01'),
   },
 ];
 
@@ -120,38 +127,50 @@ export const inventoryMovements: InventoryMovement[] = [
   {
     id: '1',
     productId: '1',
+    productName: 'Wireless Bluetooth Headphones',
     quantity: 20,
     type: 'in',
     reason: 'Initial stock',
     performedBy: '2',
     timestamp: new Date('2023-01-15'),
+    userId: '2',
+    userName: 'Warehouse Manager',
   },
   {
     id: '2',
     productId: '1',
+    productName: 'Wireless Bluetooth Headphones',
     quantity: 5,
     type: 'out',
     reason: 'Order fulfillment',
     performedBy: '2',
     timestamp: new Date('2023-01-25'),
+    userId: '2',
+    userName: 'Warehouse Manager',
   },
   {
     id: '3',
     productId: '2',
+    productName: 'Ergonomic Office Chair',
     quantity: 15,
     type: 'in',
     reason: 'Supplier delivery',
     performedBy: '2',
     timestamp: new Date('2023-02-10'),
+    userId: '2',
+    userName: 'Warehouse Manager',
   },
   {
     id: '4',
     productId: '3',
+    productName: 'Smart Fitness Watch',
     quantity: 3,
     type: 'out',
     reason: 'Defective items return',
     performedBy: '2',
     timestamp: new Date('2023-03-05'),
+    userId: '2',
+    userName: 'Warehouse Manager',
   },
 ];
 
@@ -159,13 +178,14 @@ export const inventoryMovements: InventoryMovement[] = [
 export const orders: Order[] = [
   {
     id: '1',
-    customerId: '3',
+    userId: '3',
+    orderNumber: 'ORD-001',
     products: [
       { productId: '1', quantity: 1, priceAtPurchase: 129.99 },
       { productId: '5', quantity: 2, priceAtPurchase: 59.99 },
     ],
     status: 'delivered',
-    total: 249.97,
+    totalAmount: 249.97,
     createdAt: new Date('2023-03-10'),
     updatedAt: new Date('2023-03-15'),
   },

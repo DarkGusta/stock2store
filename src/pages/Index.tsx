@@ -1,255 +1,226 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Package, ChevronRight, ShoppingCart, AlertTriangle } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import MainLayout from '@/components/layout/MainLayout';
-import DashboardStats from '@/components/dashboard/DashboardStats';
-import { getCurrentUser, products, orders, dashboardStats } from '@/utils/mockData';
-import { UserRole } from '@/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Calendar } from "lucide-react";
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
+import { DashboardStats, Order } from '@/types';
+import { getDashboardStats, getOrders } from '@/services/databaseService';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-const Index = () => {
-  const [loading, setLoading] = useState(true);
-  const currentUser = getCurrentUser();
+const Index: React.FC = () => {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  // Function to get welcome message based on user role
-  const getWelcomeMessage = (role: UserRole) => {
-    switch(role) {
-      case 'admin':
-        return "Welcome to your admin dashboard";
-      case 'warehouse':
-        return "Welcome to your warehouse dashboard";
-      case 'customer':
-        return "Welcome to your customer dashboard";
-      case 'analyst':
-        return "Welcome to your analytics dashboard";
-      default:
-        return "Welcome to Stock2Store";
-    }
-  };
-
-  // Create chart data
-  const chartData = dashboardStats.monthlyRevenue.map((value, index) => {
-    // Month names
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return {
-      month: months[index],
-      revenue: value,
-    };
+  // Fetch dashboard statistics using react-query
+  const { data: dashboardStats, isLoading: statsLoading, isError: statsError } = useQuery({
+    queryKey: ['dashboardStats'],
+    queryFn: getDashboardStats,
   });
 
-  // Get low stock products
-  const lowStockProducts = products.filter(product => product.stock <= 5);
+  // Fetch orders using react-query
+  const { data: ordersData, isLoading: ordersLoading, isError: ordersError } = useQuery({
+    queryKey: ['orders'],
+    queryFn: getOrders,
+  });
 
-  // Get recent orders
-  const recentOrders = [...orders].sort((a, b) => 
-    b.createdAt.getTime() - a.createdAt.getTime()
-  ).slice(0, 5);
+  useEffect(() => {
+    if (dashboardStats) {
+      setStats(dashboardStats);
+    }
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-[80vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
-        </div>
-      </MainLayout>
-    );
-  }
+    if (ordersData) {
+      setOrders(ordersData);
+    }
+  }, [dashboardStats, ordersData]);
+
+  const formatDate = (date: Date | undefined): string => {
+    return date ? format(date, 'PPP') : 'No date selected';
+  };
+
+  const getProductCount = (order: Order) => {
+    if (!order.products) return 0;
+    if (typeof order.products === 'number') return order.products;
+    return (order.products as any[]).length || 0;
+  };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-gray-500">{getWelcomeMessage(currentUser.role)}</p>
-        </div>
+    <div className="container mx-auto py-10">
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
-        {/* Stats Section */}
-        <DashboardStats stats={dashboardStats} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Products</CardTitle>
+            <CardDescription>Number of products in the inventory</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? <Skeleton width={80} /> : (
+              <div className="text-2xl font-semibold">{stats?.totalProducts}</div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Main Dashboard Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Revenue Chart - Larger card */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Revenue Overview</CardTitle>
-              <CardDescription>Monthly revenue for the current year</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={chartData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis 
-                      tickFormatter={(value) => `$${value/1000}k`}
-                    />
-                    <Tooltip 
-                      formatter={(value) => [`$${value}`, 'Revenue']}
-                      labelFormatter={(label) => `Month: ${label}`}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#8884d8" 
-                      fill="#8884d8" 
-                      fillOpacity={0.3}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Stock</CardTitle>
+            <CardDescription>Total quantity of all products</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? <Skeleton width={80} /> : (
+              <div className="text-2xl font-semibold">{stats?.totalStock}</div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Low Stock Alert Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Low Stock Alerts</CardTitle>
-                <AlertTriangle className="text-yellow-500" size={20} />
-              </div>
-              <CardDescription>Products that need reordering</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {lowStockProducts.length > 0 ? (
-                  lowStockProducts.map(product => (
-                    <div key={product.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-                      <div className="flex items-center space-x-3">
-                        <div className="bg-gray-100 p-2 rounded-md">
-                          <Package size={16} className="text-gray-600" />
-                        </div>
-                        <div className="text-sm">
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-gray-500 text-xs">Location: {product.location}</p>
-                        </div>
-                      </div>
-                      <Badge variant={product.stock === 0 ? "destructive" : "outline"} className="ml-2">
-                        {product.stock} left
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No low stock items</p>
-                )}
-              </div>
-              <Button variant="outline" className="mt-4 w-full" asChild>
-                <Link to="/products">View All Products</Link>
-              </Button>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Orders Pending</CardTitle>
+            <CardDescription>Orders that are pending or processing</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? <Skeleton width={80} /> : (
+              <div className="text-2xl font-semibold">{stats?.ordersPending}</div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Recent Orders */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Recent Orders</CardTitle>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/orders">View All</Link>
-                </Button>
-              </div>
-              <CardDescription>Latest customer orders</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentOrders.map(order => (
-                  <div key={order.id} className="flex items-center justify-between border-b pb-3 last:border-0">
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-purple-100 p-2 rounded-full">
-                        <ShoppingCart size={18} className="text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Order #{order.id}</p>
-                        <p className="text-sm text-gray-500">
-                          {order.products.length} items · ${order.total.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Badge 
-                        variant={order.status === 'pending' ? "outline" : 
-                                order.status === 'processing' ? "secondary" : 
-                                order.status === 'delivered' ? "default" : "destructive"}
-                      >
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </Badge>
-                      <ChevronRight size={16} className="ml-2 text-gray-400" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Quick Links Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks for your role</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {currentUser.role === 'admin' || currentUser.role === 'warehouse' ? (
-                <>
-                  <Button variant="outline" className="w-full justify-between">
-                    New Product <ChevronRight size={16} />
-                  </Button>
-                  <Button variant="outline" className="w-full justify-between">
-                    Inventory Count <ChevronRight size={16} />
-                  </Button>
-                </>
-              ) : null}
-              
-              {currentUser.role === 'customer' && (
-                <>
-                  <Button variant="outline" className="w-full justify-between">
-                    My Orders <ChevronRight size={16} />
-                  </Button>
-                  <Button variant="outline" className="w-full justify-between">
-                    My Returns <ChevronRight size={16} />
-                  </Button>
-                </>
-              )}
-              
-              {currentUser.role === 'analyst' && (
-                <>
-                  <Button variant="outline" className="w-full justify-between">
-                    Sales Reports <ChevronRight size={16} />
-                  </Button>
-                  <Button variant="outline" className="w-full justify-between">
-                    Inventory Analysis <ChevronRight size={16} />
-                  </Button>
-                </>
-              )}
-              
-              <Button variant="outline" className="w-full justify-between">
-                View Profile <ChevronRight size={16} />
-              </Button>
-              <Button variant="outline" className="w-full justify-between">
-                Settings <ChevronRight size={16} />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Sales</CardTitle>
+            <CardDescription>Total value of all sales</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? <Skeleton width={80} /> : (
+              <div className="text-2xl font-semibold">${stats?.totalSales?.toFixed(2)}</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </MainLayout>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <Card className="col-span-1 lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Monthly Revenue</CardTitle>
+            <CardDescription>Revenue for the last 12 months</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <Skeleton height={300} />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={stats?.monthlyRevenue?.map((revenue, index) => ({
+                  month: index + 1,
+                  revenue,
+                }))}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mb-8 flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Recent Orders</h2>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-[200px] justify-start text-left font-normal",
+                !date && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {formatDate(date)}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="center">
+            <DatePicker
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              className="rounded-md border"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Orders Overview</CardTitle>
+          <CardDescription>Your recent orders</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Products</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ordersLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    <Skeleton width={200} />
+                  </TableCell>
+                </TableRow>
+              ) : ordersError ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Error loading orders.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                    <TableCell>{order.profiles.name}</TableCell>
+                    <TableCell>{format(order.createdAt, 'PPP')}</TableCell>
+                    <TableCell>{order.status}</TableCell>
+                    <TableCell>{getProductCount(order)}</TableCell>
+                    <TableCell className="text-right">${order.totalAmount.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

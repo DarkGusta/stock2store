@@ -72,7 +72,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
                     {formatDate(movement.timestamp)}
                   </TableCell>
                   <TableCell className="text-gray-500 text-sm">
-                    Warehouse Staff
+                    {movement.userName || 'Warehouse Staff'}
                   </TableCell>
                 </TableRow>
               );
