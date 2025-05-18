@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button"; 
-import { SearchIcon, ShoppingCart } from "lucide-react";
+import { SearchIcon, ShoppingCart, PackageOpen } from "lucide-react";
 import { Product } from '@/types';
 import { getProducts } from '@/services/databaseService';
 import ProductCard from '@/components/products/ProductCard';
@@ -19,7 +19,7 @@ const Store: React.FC = () => {
   const { user } = useAuth();
 
   // Fetch products using React Query
-  const { data: products = [], isLoading, error } = useQuery({
+  const { data: products = [], isLoading, error, refetch } = useQuery({
     queryKey: ['store-products'],
     queryFn: getProducts,
   });
@@ -27,6 +27,7 @@ const Store: React.FC = () => {
   // Handle errors
   useEffect(() => {
     if (error) {
+      console.error('Error in Store page:', error);
       toast({
         title: "Error",
         description: "Failed to load products. Please try again later.",
@@ -60,10 +61,15 @@ const Store: React.FC = () => {
           <h1 className="text-3xl font-bold">Welcome to the Store{user ? `, ${user.name}` : ''}</h1>
           <p className="text-gray-500 mt-1">Browse our available products</p>
         </div>
-        <Button className="mt-4 md:mt-0">
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          View Cart (0)
-        </Button>
+        <div className="mt-4 md:mt-0 flex gap-2">
+          <Button onClick={() => refetch()} variant="outline">
+            Refresh Products
+          </Button>
+          <Button>
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            View Cart (0)
+          </Button>
+        </div>
       </div>
 
       <div className="mb-8">
@@ -107,18 +113,28 @@ const Store: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredProducts.map(product => (
-              <ProductCard 
-                key={product.id} 
-                product={product}
-                showActions={false}
-                onSelect={handleProductSelect}
-              />
-            ))}
-          </div>
-
-          {filteredProducts.length === 0 && (
+          {products.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
+                <PackageOpen size={24} className="text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold">No products available</h3>
+              <p className="text-gray-500 mt-1">
+                There are currently no products in the database.
+              </p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredProducts.map(product => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product}
+                  showActions={false}
+                  onSelect={handleProductSelect}
+                />
+              ))}
+            </div>
+          ) : (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
                 <SearchIcon size={24} className="text-blue-600" />

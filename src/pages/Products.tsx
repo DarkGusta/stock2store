@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Filter, SlidersHorizontal, Download, RefreshCcw
+  Plus, Search, Filter, SlidersHorizontal, Download, RefreshCcw, PackageOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,7 @@ const Products = () => {
   const { toast } = useToast();
 
   // Fetch products using React Query
-  const { data: products = [], isLoading, error } = useQuery({
+  const { data: products = [], isLoading, error, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: getProducts,
   });
@@ -42,6 +42,7 @@ const Products = () => {
   // Handle errors
   useEffect(() => {
     if (error) {
+      console.error('Error in Products page:', error);
       toast({
         title: "Error",
         description: "Failed to load products. Please try again later.",
@@ -103,6 +104,14 @@ const Products = () => {
     });
   };
 
+  const handleRefresh = () => {
+    refetch();
+    toast({
+      title: "Refreshing Products",
+      description: "Fetching the latest product data from the database.",
+    });
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -111,10 +120,16 @@ const Products = () => {
             <h1 className="text-2xl font-semibold">Products</h1>
             <p className="text-gray-500">Manage your product catalog</p>
           </div>
-          <Button>
-            <Plus size={16} className="mr-2" />
-            Add Product
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCcw size={16} className="mr-2" />
+              Refresh
+            </Button>
+            <Button>
+              <Plus size={16} className="mr-2" />
+              Add Product
+            </Button>
+          </div>
         </div>
 
         {/* Filters Bar */}
@@ -205,19 +220,35 @@ const Products = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedProducts.map((product) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product}
-                  onEdit={handleProductEdit}
-                  onDelete={handleProductDelete}
-                  onSelect={handleProductSelect}
-                />
-              ))}
-            </div>
-
-            {sortedProducts.length === 0 && (
+            {products.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
+                  <PackageOpen size={24} className="text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold">No products available</h3>
+                <p className="text-gray-500 mt-1">
+                  There are currently no products in the database.
+                </p>
+                <Button 
+                  className="mt-4"
+                >
+                  <Plus size={16} className="mr-2" />
+                  Add Your First Product
+                </Button>
+              </div>
+            ) : sortedProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {sortedProducts.map((product) => (
+                  <ProductCard 
+                    key={product.id} 
+                    product={product}
+                    onEdit={handleProductEdit}
+                    onDelete={handleProductDelete}
+                    onSelect={handleProductSelect}
+                  />
+                ))}
+              </div>
+            ) : (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
                 <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
                   <Search size={24} className="text-blue-600" />
