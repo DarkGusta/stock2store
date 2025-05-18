@@ -1,4 +1,15 @@
+
 export type UserRole = 'admin' | 'warehouse' | 'customer' | 'analyst';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface Product {
   id: string;
@@ -9,6 +20,7 @@ export interface Product {
   image: string;
   category: string;
   location: string;
+  barcode?: string;  // Added barcode field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,9 +28,23 @@ export interface Product {
 export interface DashboardStats {
   totalProducts: number;
   totalStock: number;
+  lowStockProducts: number;  // Added missing property
   ordersPending: number;
   totalSales: number;
   monthlyRevenue: number[];
+}
+
+export interface InventoryMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  type: 'in' | 'out';
+  reason: string;
+  performedBy: string;
+  timestamp: Date;
+  userId: string;
+  userName: string;
 }
 
 export interface Order {
@@ -27,6 +53,8 @@ export interface Order {
   userId: string;
   status: string;
   totalAmount: number;
-  products: number | any[];
+  total?: number;  // Added for backward compatibility
+  products: any[];
   createdAt: string | Date;
+  updatedAt?: string | Date;  // Made optional to match existing code
 }

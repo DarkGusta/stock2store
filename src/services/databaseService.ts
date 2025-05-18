@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardStats, Order, Product } from '@/types';
 
@@ -101,6 +102,12 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     
     const totalStock = inventoryData?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
     
+    // Get low stock products (quantity <= 5)
+    const { count: lowStockProducts } = await supabase
+      .from('inventory')
+      .select('*', { count: 'exact', head: true })
+      .lte('quantity', 5);
+    
     // Get pending orders
     const { count: ordersPending } = await supabase
       .from('orders')
@@ -122,6 +129,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     return {
       totalProducts: totalProducts || 0,
       totalStock,
+      lowStockProducts: lowStockProducts || 0,
       ordersPending: ordersPending || 0,
       totalSales,
       monthlyRevenue
@@ -131,6 +139,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     return {
       totalProducts: 0,
       totalStock: 0,
+      lowStockProducts: 0,
       ordersPending: 0,
       totalSales: 0,
       monthlyRevenue: Array(12).fill(0)
