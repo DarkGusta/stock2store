@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { signIn } from '@/services/auth';
 import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 
 interface LoginFormProps {
   email: string;
@@ -13,50 +13,74 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ email, setEmail }) => {
-  const [password, setPassword] = useState('password');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
+    setIsSubmitting(true);
+
     try {
-      console.log("Attempting login with:", { email });
       const { user, error } = await signIn(email, password);
       
       if (error) {
         console.error("Login error:", error);
-      } else if (user) {
-        // Successfully logged in - navigate will happen automatically via AuthContext effect
-        console.log("Login successful, user:", user);
+        // The toast is already handled in the signIn function
       }
     } catch (error) {
-      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
+
+  const handleResendConfirmation = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Confirmation email sent",
+          description: "Please check your inbox",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send confirmation email",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
-    <form onSubmit={handleLogin} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input 
-          id="email" 
-          type="email" 
-          placeholder="name@company.com" 
-          required 
+        <Input
+          id="email"
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email address"
+          required
         />
       </div>
+      
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
@@ -64,41 +88,43 @@ const LoginForm: React.FC<LoginFormProps> = ({ email, setEmail }) => {
             Forgot password?
           </a>
         </div>
-        <div className="relative">
-          <Input 
-            id="password" 
-            type={showPassword ? "text" : "password"} 
-            placeholder="••••••••"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button 
-            type="button"
-            className="absolute inset-y-0 right-0 flex items-center pr-3"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4 text-gray-400" />
-            ) : (
-              <Eye className="h-4 w-4 text-gray-400" />
-            )}
-          </button>
-        </div>
+        <Input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Your password"
+          required
+        />
       </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? (
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+      
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Signing in...
-          </div>
+          </>
         ) : (
-          <div className="flex items-center">
-            <LogIn size={18} className="mr-2" />
-            Sign in
-          </div>
+          "Sign in"
         )}
       </Button>
+
+      <div className="pt-2">
+        <p className="text-sm text-center text-gray-500">
+          Haven't confirmed your email?{' '}
+          <button 
+            type="button" 
+            onClick={handleResendConfirmation}
+            className="text-blue-600 hover:underline"
+          >
+            Resend confirmation
+          </button>
+        </p>
+      </div>
     </form>
   );
 };

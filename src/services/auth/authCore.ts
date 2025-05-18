@@ -24,11 +24,20 @@ export const signIn = async (email: string, password: string) => {
     });
 
     if (error) {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive"
-      });
+      // Check for email confirmation error specifically
+      if (error.message.includes("Email not confirmed")) {
+        toast({
+          title: "Email not confirmed",
+          description: "Please check your email for the confirmation link or request a new one.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
       return { user: null, error };
     }
 
@@ -77,7 +86,7 @@ export const signUp = async (email: string, password: string, name: string) => {
 
     toast({
       title: "Registration successful",
-      description: "Welcome to Stock2Store! You can now sign in.",
+      description: "Please check your email for confirmation instructions.",
       variant: "default"
     });
 
