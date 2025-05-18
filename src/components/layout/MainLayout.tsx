@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Store, BarChart3, Users, Settings, LogOut, Menu, X, 
-  Bell, Search, ChevronDown, User, ShoppingCart 
+  Bell, Search, ChevronDown, User, ShoppingCart, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -33,7 +33,7 @@ const navigation: NavItem[] = [
   { name: 'Analytics', href: '/analytics', icon: BarChart3, allowed: ['admin', 'analyst'] },
   { name: 'Users', href: '/users', icon: Users, allowed: ['admin'] },
   { name: 'Shopping Cart', href: '/cart', icon: ShoppingCart, allowed: ['customer'] },
-  { name: 'Returns', href: '/returns', icon: "return", allowed: ['customer'] },
+  { name: 'Returns', href: '/returns', icon: RotateCcw, allowed: ['customer'] },
   { name: 'Profile', href: '/profile', icon: User, allowed: ['admin', 'warehouse', 'analyst', 'customer'] },
   { name: 'Settings', href: '/settings', icon: Settings, allowed: ['admin', 'warehouse', 'analyst', 'customer'] },
 ];
