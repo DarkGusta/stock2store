@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser, signOut } from "@/services/authService";
+import { getCurrentUser, signOut } from "@/services/auth";
 
 // Export the cleanup function to be used in authService
 export const cleanupAuthState = () => {
