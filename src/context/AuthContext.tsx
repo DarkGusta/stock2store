@@ -4,6 +4,24 @@ import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUser, signOut } from "@/services/authService";
 
+// Export the cleanup function to be used in authService
+export const cleanupAuthState = () => {
+  // Remove standard auth tokens
+  localStorage.removeItem('supabase.auth.token');
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  // Remove from sessionStorage if in use
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -39,7 +57,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(async () => {
             try {
               const currentUser = await getCurrentUser();
-              setUser(currentUser);
+              if (currentUser) {
+                setUser(currentUser);
+              } else {
+                setUser(null);
+              }
             } catch (error) {
               console.error("Error fetching user data:", error);
               setUser(null);
@@ -47,9 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setLoading(false);
             }
           }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setLoading(false);
         }
       }
     );
@@ -58,9 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkSession = async () => {
       try {
         const currentUser = await getCurrentUser();
-        setUser(currentUser);
+        if (currentUser) {
+          setUser(currentUser);
+        } else {
+          setUser(null);
+        }
       } catch (error) {
         console.error("Error checking session:", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }

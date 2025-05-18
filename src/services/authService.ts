@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserRole } from "@/types";
 import { toast } from "@/components/ui/use-toast";
@@ -11,17 +12,51 @@ const getRoleFromEmail = (email: string): UserRole => {
   return 'customer';
 };
 
-export const getCurrentUser = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  
-  if (error) {
-    console.error("Error getting session:", error);
+export const getCurrentUser = async (): Promise<User | null> => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error("Error getting session:", error);
+      return null;
+    }
+
+    if (!session) return null;
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (profileData) {
+      const user: User = {
+        id: session.user.id,
+        email: session.user.email || '',
+        name: profileData.name || 'User',
+        role: profileData.role as UserRole || 'customer',
+        createdAt: new Date(profileData.created_at || Date.now()),
+        updatedAt: new Date(profileData.updated_at || Date.now())
+      };
+      
+      return user;
+    }
+
+    // Create a default user if profile doesn't exist
+    const user: User = {
+      id: session.user.id,
+      email: session.user.email || '',
+      name: session.user.user_metadata?.name || 'User',
+      role: getRoleFromEmail(session.user.email || ''),
+      createdAt: new Date(session.user.created_at || Date.now()),
+      updatedAt: new Date(session.user.updated_at || Date.now())
+    };
+    
+    return user;
+  } catch (error) {
+    console.error("Error in getCurrentUser:", error);
     return null;
   }
-
-  if (!session) return null;
-
-  return session.user;
 };
 
 export const signIn = async (email: string, password: string) => {
@@ -143,7 +178,12 @@ export const createDemoAccount = async (email: string, password: string, name: s
     }
     
     // Make sure role is one of the valid UserRole enum values
-    const validRole = role.toLowerCase() as UserRole;
+    let validRole: UserRole = 'customer';
+    
+    if (role === 'admin') validRole = 'admin';
+    else if (role === 'warehouse') validRole = 'warehouse';
+    else if (role === 'analyst') validRole = 'analyst';
+    else validRole = 'customer';
     
     // Update the user's role in the profiles table
     if (user) {
@@ -170,10 +210,10 @@ export const createDemoAccount = async (email: string, password: string, name: s
         // Ensure the role is set correctly
         await supabase
           .from('profiles')
-          .update({ role: role.toLowerCase() })
+          .update({ role: validRole })
           .eq('email', email);
           
-        return { user: { id: profileData.id } as User, error: null };
+        return { user: { id: profileData.id } as any, error: null };
       }
       
       return { user: null, error: new Error("User creation succeeded but user object is null") };
