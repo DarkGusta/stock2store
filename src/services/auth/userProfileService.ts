@@ -1,7 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserRole } from "@/types";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { getUserProfileFixed } from '@/services/databaseService';
 
 // Helper function to get role based on email
 export const getRoleFromEmail = (email: string): UserRole => {
@@ -13,11 +13,8 @@ export const getRoleFromEmail = (email: string): UserRole => {
 
 export const getUserProfile = async (supabaseUser: SupabaseUser): Promise<User | null> => {
   try {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', supabaseUser.id)
-      .single();
+    // Use the fixed method to get profile
+    const profileData = await getUserProfileFixed(supabaseUser.id);
 
     if (profileData) {
       // Generate avatar URL since it doesn't exist in the profiles table
