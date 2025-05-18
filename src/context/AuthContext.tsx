@@ -42,6 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("Setting up auth context...");
+    
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -57,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle instead of single to avoid errors
                 
               if (!error && profile) {
                 console.log("Profile fetched successfully:", profile);
@@ -69,9 +71,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   createdAt: new Date(profile.created_at),
                   updatedAt: new Date(profile.updated_at)
                 });
-              } else {
+              } else if (error) {
                 console.error('Error fetching user profile:', error);
-                setUser(null);
+                // Create a default user object with minimal info when profile isn't found
+                setUser({
+                  id: session.user.id,
+                  name: session.user.user_metadata?.name || 'User',
+                  email: session.user.email || '',
+                  role: 'customer' as UserRole, // Default role
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                });
+              } else {
+                // No profile found but also no error (null result)
+                console.log("No profile found for user, creating default user object");
+                setUser({
+                  id: session.user.id,
+                  name: session.user.user_metadata?.name || 'User',
+                  email: session.user.email || '',
+                  role: 'customer' as UserRole, // Default role
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                });
               }
             } catch (error) {
               console.error('Error in auth state change:', error);
@@ -101,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle(); // Use maybeSingle instead of single
             
           if (!error && profile) {
             console.log("Profile found for existing session:", profile);
@@ -114,7 +135,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               updatedAt: new Date(profile.updated_at)
             });
           } else {
-            console.error("Error fetching profile for existing session:", error);
+            console.log("No profile found or error fetching profile, using default user data");
+            // Create a default user object when profile isn't found
+            setUser({
+              id: session.user.id,
+              name: session.user.user_metadata?.name || 'User',
+              email: session.user.email || '',
+              role: 'customer' as UserRole, // Default role
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
           }
         } else {
           console.log("No existing session found");
