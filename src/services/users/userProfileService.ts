@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const getUserProfileFixed = async (userId: string) => {
   try {
+    console.log("Fetching profile for user ID:", userId);
     // Try to get multiple profiles with a filter instead of using .single()
     const { data, error } = await supabase
       .from('profiles')
@@ -22,6 +23,7 @@ export const getUserProfileFixed = async (userId: string) => {
       return null;
     }
     
+    console.log('Profile found:', data[0]);
     // Return the first profile found
     return data[0];
   } catch (error) {
