@@ -34,7 +34,9 @@ export function useAuthState(): [
           // Use setTimeout to avoid auth deadlocks
           setTimeout(async () => {
             try {
+              console.log("Fetching user data after auth state change...");
               const currentUser = await fetchCurrentUser();
+              console.log("User data fetched:", currentUser);
               setUser(currentUser);
             } catch (error) {
               console.error("Error fetching user data:", error);
@@ -50,7 +52,9 @@ export function useAuthState(): [
     // Check for existing session
     const checkSession = async () => {
       try {
+        console.log("Checking for existing session...");
         const currentUser = await fetchCurrentUser();
+        console.log("Current user from session check:", currentUser);
         setUser(currentUser);
       } catch (error) {
         console.error("Error checking session:", error);
