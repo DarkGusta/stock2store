@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { signIn, createDemoAccount } from '@/services/authService';
+import { signIn, createAllDemoAccounts } from '@/services/authService';
 import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -75,26 +74,25 @@ const Login: React.FC = () => {
 
   const handleCreateDemoAccounts = async () => {
     setCreatingDemoAccounts(true);
-    const newStatus: Record<string, boolean> = {};
     
-    for (const account of demoAccounts) {
-      try {
-        const name = account.role + " User";
-        const result = await createDemoAccount(account.email, 'password', name, account.role.toLowerCase());
-        newStatus[account.email] = !result.error;
-      } catch (err) {
-        console.error(`Failed to create ${account.email}:`, err);
-        newStatus[account.email] = false;
-      }
+    try {
+      const results = await createAllDemoAccounts(demoAccounts);
+      setDemoCreationStatus(results);
+      
+      toast({
+        title: "Demo accounts setup",
+        description: "Process completed. You can now login with any of the available demo accounts using password: 'password'",
+      });
+    } catch (error) {
+      console.error("Error setting up demo accounts:", error);
+      toast({
+        title: "Demo account setup failed",
+        description: "An unexpected error occurred. Check console for details.",
+        variant: "destructive"
+      });
+    } finally {
+      setCreatingDemoAccounts(false);
     }
-    
-    setDemoCreationStatus(newStatus);
-    setCreatingDemoAccounts(false);
-    
-    toast({
-      title: "Demo accounts setup complete",
-      description: "You can now login with any of the demo accounts using password: 'password'",
-    });
   };
 
   return (
