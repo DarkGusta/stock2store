@@ -42,9 +42,9 @@ export const hasPermission = async (resource: string, action: string): Promise<b
     }
 
     // Use the security definer function directly via RPC
-    // Fix: Add both type arguments to the rpc method (Args and Returns)
+    // Fix: The first type parameter should be the function name, and the second the return type
     const { data, error } = await supabase
-      .rpc<boolean, { user_id: string, req_resource: string, req_action: string }>('user_has_permission', {
+      .rpc('user_has_permission', {
         user_id: session.user.id,
         req_resource: resource,
         req_action: action
