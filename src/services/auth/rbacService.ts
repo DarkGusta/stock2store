@@ -41,36 +41,20 @@ export const hasPermission = async (resource: string, action: string): Promise<b
       return false;
     }
 
-    // Get the user's roles from the role_permissions table
-    // This is a join query to check if the user has a role that has the required permission
+    // Use the security definer function directly via RPC
     const { data, error } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        role,
-        roles!inner (
-          id,
-          name,
-          role_permissions!inner (
-            permission_id,
-            permissions!inner (
-              resource,
-              action
-            )
-          )
-        )
-      `)
-      .eq('id', session.user.id)
-      .eq('roles.role_permissions.permissions.resource', resource)
-      .eq('roles.role_permissions.permissions.action', action);
+      .rpc('user_has_permission', {
+        user_id: session.user.id,
+        req_resource: resource,
+        req_action: action
+      });
 
     if (error) {
       console.error('Error checking permissions:', error);
       return false;
     }
 
-    // If we got data back, the user has the permission
-    return data && data.length > 0;
+    return data || false;
   } catch (error) {
     console.error('Error checking user permissions:', error);
     return false;
@@ -91,45 +75,37 @@ export const getUserPermissions = async (): Promise<{resource: string, action: s
 
     // Get all permissions for the user's roles
     const { data, error } = await supabase
-      .from('profiles')
+      .from('permissions')
       .select(`
-        roles!inner (
-          role_permissions!inner (
-            permissions!inner (
-              resource,
-              action
-            )
+        resource,
+        action,
+        role_permissions!inner(
+          role_id,
+          roles!inner(
+            name
           )
         )
       `)
-      .eq('id', session.user.id);
+      .eq('role_permissions.roles.name', 
+          // Get user's role from profiles
+          supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+            .then(({ data }) => data?.role || 'customer')
+      );
 
     if (error) {
       console.error('Error fetching user permissions:', error);
       return [];
     }
 
-    // Process the nested data to extract permissions
-    const permissions: {resource: string, action: string}[] = [];
-    
-    if (data && data.length > 0) {
-      data.forEach(profile => {
-        if (profile.roles) {
-          profile.roles.forEach((role: any) => {
-            if (role.role_permissions) {
-              role.role_permissions.forEach((rp: any) => {
-                if (rp.permissions) {
-                  permissions.push({
-                    resource: rp.permissions.resource,
-                    action: rp.permissions.action
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-    }
+    // Extract the permissions
+    const permissions = (data || []).map(perm => ({
+      resource: perm.resource,
+      action: perm.action
+    }));
 
     return permissions;
   } catch (error) {
@@ -156,9 +132,11 @@ export const assignRoleToUser = async (userId: string, roleName: string): Promis
     }
 
     // Now update the user's profile
+    // We're casting roleName to UserRole to satisfy TypeScript
+    // This is safe as long as roleName matches one of the enum values
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ role: roleName })
+      .update({ role: roleName as UserRole })
       .eq('id', userId);
 
     if (updateError) {
