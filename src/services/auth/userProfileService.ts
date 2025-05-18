@@ -20,12 +20,14 @@ export const getUserProfile = async (supabaseUser: SupabaseUser): Promise<User |
       .single();
 
     if (profileData) {
+      // Generate avatar URL since it doesn't exist in the profiles table
+      const name = profileData.name || 'User';
       return {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
-        name: profileData.name || 'User',
+        name: name,
         role: profileData.role as UserRole || 'customer',
-        avatar: profileData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name || 'User')}&background=random`,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
         createdAt: new Date(profileData.created_at || Date.now()),
         updatedAt: new Date(profileData.updated_at || Date.now())
       };
