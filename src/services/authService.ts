@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { cleanupAuthState } from "@/context/AuthContext";
 
@@ -124,24 +124,27 @@ export const signOut = async () => {
 // Function to create demo accounts - typically would be used only in development
 export const createDemoAccount = async (email: string, password: string, name: string, role: string) => {
   try {
-    const { data, error } = await signUp(email, password, name);
+    const { user, error } = await signUp(email, password, name);
     
-    if (error || !data.user) {
+    if (error || !user) {
       console.error("Failed to create demo account:", error);
       return { user: null, error };
     }
     
+    // Make sure role is one of the valid UserRole enum values
+    const validRole = role.toLowerCase() as UserRole;
+    
     // Update the user's role in the profiles table
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ role })
-      .eq('id', data.user.id);
+      .update({ role: validRole })
+      .eq('id', user.id);
     
     if (profileError) {
       console.error("Failed to update user role:", profileError);
     }
     
-    return { user: data.user, error: null };
+    return { user, error: null };
   } catch (error) {
     console.error("Error creating demo account:", error);
     return { user: null, error };
