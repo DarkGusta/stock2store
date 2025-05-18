@@ -72,6 +72,38 @@ const AppRoutes = () => {
           <Analytics />
         </ProtectedRoute>
       } />
+      <Route path="/profile" element={
+        <ProtectedRoute path="/profile">
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-4">Profile</h1>
+            <p>Your profile details will be displayed here.</p>
+          </div>
+        </ProtectedRoute>
+      } />
+      <Route path="/cart" element={
+        <ProtectedRoute path="/cart">
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-4">Shopping Cart</h1>
+            <p>Your shopping cart items will be displayed here.</p>
+          </div>
+        </ProtectedRoute>
+      } />
+      <Route path="/returns" element={
+        <ProtectedRoute path="/returns">
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-4">Returns</h1>
+            <p>Your return requests will be displayed here.</p>
+          </div>
+        </ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <ProtectedRoute path="/settings">
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-4">Settings</h1>
+            <p>Your account settings will be displayed here.</p>
+          </div>
+        </ProtectedRoute>
+      } />
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />

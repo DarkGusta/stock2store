@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Store, BarChart3, Users, Settings, LogOut, Menu, X, 
-  Bell, Search, ChevronDown 
+  Bell, Search, ChevronDown, User, ShoppingCart 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,12 +26,15 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard, allowed: ['admin', 'warehouse', 'analyst', 'customer'] },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard, allowed: ['admin', 'warehouse', 'analyst'] },
   { name: 'Products', href: '/products', icon: Package, allowed: ['admin', 'warehouse', 'analyst'] },
   { name: 'Warehouse', href: '/warehouse', icon: Package, allowed: ['admin', 'warehouse'] },
   { name: 'Store', href: '/store', icon: Store, allowed: ['admin', 'customer', 'analyst'] },
   { name: 'Analytics', href: '/analytics', icon: BarChart3, allowed: ['admin', 'analyst'] },
   { name: 'Users', href: '/users', icon: Users, allowed: ['admin'] },
+  { name: 'Shopping Cart', href: '/cart', icon: ShoppingCart, allowed: ['customer'] },
+  { name: 'Returns', href: '/returns', icon: "return", allowed: ['customer'] },
+  { name: 'Profile', href: '/profile', icon: User, allowed: ['admin', 'warehouse', 'analyst', 'customer'] },
   { name: 'Settings', href: '/settings', icon: Settings, allowed: ['admin', 'warehouse', 'analyst', 'customer'] },
 ];
 
@@ -69,7 +72,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       
       <div className={`fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-50`}>
         <div className="flex items-center justify-between px-4 h-16 border-b border-gray-200">
-          <Link to="/" className="flex items-center">
+          <Link to={user.role === 'customer' ? '/store' : '/'} className="flex items-center">
             <span className="text-xl font-semibold text-gray-800">Stock2Store</span>
           </Link>
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
@@ -101,10 +104,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <item.icon
-                    size={20}
-                    className={`mr-3 ${active ? 'text-blue-700' : 'text-gray-500'}`}
-                  />
+                  {typeof item.icon === 'string' ? (
+                    <span className="mr-3 text-gray-500">↩</span>
+                  ) : (
+                    <item.icon
+                      size={20}
+                      className={`mr-3 ${active ? 'text-blue-700' : 'text-gray-500'}`}
+                    />
+                  )}
                   {item.name}
                 </Link>
               );
@@ -162,8 +169,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link to="/profile" className="flex w-full">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link to="/settings" className="flex w-full">Settings</Link>
+                  </DropdownMenuItem>
+                  {user.role === 'customer' && (
+                    <>
+                      <DropdownMenuItem>
+                        <Link to="/cart" className="flex w-full">Shopping Cart</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/returns" className="flex w-full">Returns</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-red-600" onClick={handleSignOut}>
                     Log out
