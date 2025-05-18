@@ -81,7 +81,7 @@ export const getInventory = async () => {
       amount: p.amount,
       effective_from: new Date(p.effective_from)
     }))
-  } as Inventory & { 
+  }) as (Inventory & { 
     product_types: Pick<ProductType, "name" | "taxType">;
     price: { amount: number; effective_from: Date; }[];
   }));
@@ -258,7 +258,7 @@ export const getLocations = async () => {
     slotNumber: loc.slot_number,
     status: loc.status,
     capacity: loc.capacity
-  } as Location));
+  }) as Location);
 };
 
 /**
