@@ -14,8 +14,6 @@ import Login from "./components/auth/Login";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
-const queryClient = new QueryClient();
-
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -71,6 +69,9 @@ const AppRoutes = () => {
 };
 
 const App = () => {
+  // Create a new QueryClient instance inside the component
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
