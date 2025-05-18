@@ -1,13 +1,22 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { users } from '@/utils/mockData';
 import { useToast } from '@/components/ui/use-toast';
+import { signIn } from '@/services/authService';
+import { useAuth } from '@/context/AuthContext';
+
+// Demo accounts for testing
+const demoAccounts = [
+  { email: 'admin@stock2store.com', role: 'Admin' },
+  { email: 'warehouse@stock2store.com', role: 'Warehouse' },
+  { email: 'customer@stock2store.com', role: 'Customer' },
+  { email: 'analyst@stock2store.com', role: 'Analyst' }
+];
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,33 +25,47 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  // If user is already logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    try {
+      const { user, error } = await signIn(email, password);
       
-      if (user && password === 'password') { // For demo, any password 'password' works
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${user.name}!`,
-        });
-        // In a real app, you'd save auth state to context or store
-        // For demo, we'll just redirect
-        navigate('/');
-      } else {
+      if (error) {
         toast({
           title: "Login failed",
-          description: "Invalid email or password. Try admin@stock2store.com with password: 'password'",
+          description: error.message || "Invalid email or password. Try with password: 'password'",
           variant: "destructive"
         });
+      } else if (user) {
+        toast({
+          title: "Login successful",
+          description: `Welcome back!`,
+        });
+        
+        // Force a refresh to ensure auth state is properly updated
+        window.location.href = '/';
       }
-      
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -116,15 +139,15 @@ const Login: React.FC = () => {
           <div className="mt-4 text-sm text-gray-500">
             <p className="text-center">Demo accounts:</p>
             <div className="grid grid-cols-2 gap-2 mt-2">
-              {users.map((user) => (
+              {demoAccounts.map((account, index) => (
                 <Button 
-                  key={user.id}
+                  key={index}
                   variant="outline"
                   size="sm"
                   className="text-xs justify-start overflow-hidden"
-                  onClick={() => setEmail(user.email)}
+                  onClick={() => setEmail(account.email)}
                 >
-                  {user.email}
+                  {account.email}
                 </Button>
               ))}
             </div>

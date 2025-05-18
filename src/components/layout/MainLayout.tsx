@@ -15,8 +15,8 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { User, UserRole } from '@/types';
-import { getCurrentUser } from '@/utils/mockData';
+import { UserRole } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface NavItem {
   name: string;
@@ -42,15 +42,23 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const currentUser: User = getCurrentUser();
+  const { user, signOut } = useAuth();
+  
+  if (!user) {
+    return <div>Loading...</div>;
+  }
 
   const filteredNavigation = navigation.filter(item => 
-    item.allowed.includes(currentUser.role)
+    item.allowed.includes(user.role)
   );
   
   // Function to determine if a nav link is active
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
@@ -72,12 +80,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <div className="px-4 py-4">
           <div className="flex items-center space-x-3 mb-6">
             <Avatar>
-              <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-              <AvatarFallback>{currentUser.name.substring(0, 2)}</AvatarFallback>
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">{currentUser.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{currentUser.role}</p>
+              <p className="text-sm font-medium">{user.name}</p>
+              <p className="text-xs text-gray-500 capitalize">{user.role}</p>
             </div>
           </div>
           <nav className="space-y-1">
@@ -105,7 +113,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </div>
         
         <div className="absolute bottom-0 w-full border-t border-gray-200 p-4">
-          <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
+          <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleSignOut}>
             <LogOut size={20} className="mr-2" />
             Log out
           </Button>
@@ -146,8 +154,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full flex items-center justify-center">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                      <AvatarFallback>{currentUser.name.substring(0, 2)}</AvatarFallback>
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -157,7 +165,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   <DropdownMenuItem>Profile</DropdownMenuItem>
                   <DropdownMenuItem>Settings</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-600">Log out</DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-600" onClick={handleSignOut}>
+                    Log out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

@@ -18,6 +18,24 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {}
 });
 
+// Helper function to clean up auth state to prevent auth limbo
+export const cleanupAuthState = () => {
+  // Remove standard auth tokens
+  localStorage.removeItem('supabase.auth.token');
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  // Remove from sessionStorage if in use
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -51,13 +69,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
               } else {
                 console.error('Error fetching user profile:', error);
+                setUser(null);
               }
             } catch (error) {
               console.error('Error in auth state change:', error);
+              setUser(null);
+            } finally {
+              setLoading(false);
             }
           }, 0);
         } else {
           setUser(null);
+          setLoading(false);
         }
       }
     );
@@ -102,9 +125,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Clean up auth state first
+    cleanupAuthState();
+    
+    try {
+      // Attempt global sign out (fallback if it fails)
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    }
+    
     setUser(null);
     setSession(null);
+    
+    // Force a page reload for a clean state
+    window.location.href = '/login';
   };
 
   const value = {
