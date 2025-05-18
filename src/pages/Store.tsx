@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button"; 
 import { SearchIcon, ShoppingCart, PackageOpen } from "lucide-react";
 import { Product } from '@/types';
-import { getProducts } from '@/services/databaseService';
+import { getProducts } from '@/services'; // Updated import path
 import ProductCard from '@/components/products/ProductCard';
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -39,10 +39,10 @@ const Store: React.FC = () => {
   }, [error, toast]);
 
   // Get all unique categories
-  const categories = ['all', ...Array.from(new Set(products.map(product => product.category || 'Uncategorized')))];
+  const categories = ['all', ...Array.from(new Set((products as Product[]).map(product => product.category || 'Uncategorized')))];
 
-  // Filter products by search term and category
-  const filteredProducts = products.filter(product => {
+  // Filter products based on search term and category
+  const filteredProducts = (products as Product[]).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (product.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
@@ -91,7 +91,7 @@ const Store: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium">Filter:</span>
                 <div className="flex flex-wrap gap-2">
-                  {categories.map(category => (
+                  {categories.map((category) => (
                     <Badge 
                       key={category}
                       variant={categoryFilter === category ? "default" : "outline"}
@@ -115,7 +115,7 @@ const Store: React.FC = () => {
         </div>
       ) : (
         <>
-          {products.length === 0 ? (
+          {(products as Product[]).length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
                 <PackageOpen size={24} className="text-blue-600" />

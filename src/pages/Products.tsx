@@ -24,7 +24,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import ProductCard from '@/components/products/ProductCard';
 import { useToast } from '@/components/ui/use-toast';
 import { Product } from '@/types';
-import { getProducts } from '@/services/databaseService';
+import { getProducts } from '@/services'; // Updated import path
 import { useQuery } from '@tanstack/react-query';
 
 const Products = () => {
@@ -52,10 +52,10 @@ const Products = () => {
   }, [error, toast]);
 
   // Get unique categories from products
-  const categories = [...new Set(products.map(product => product.category || 'Uncategorized'))];
+  const categories = [...new Set((products as Product[]).map(product => product.category || 'Uncategorized'))];
 
   // Filter products based on search and category
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = (products as Product[]).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (product.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
@@ -220,7 +220,7 @@ const Products = () => {
           </div>
         ) : (
           <>
-            {products.length === 0 ? (
+            {(products as Product[]).length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
                 <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
                   <PackageOpen size={24} className="text-blue-600" />
