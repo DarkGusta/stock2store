@@ -1,67 +1,47 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button"; 
-import { SearchIcon, Filter, ShoppingCart } from "lucide-react";
+import { SearchIcon, ShoppingCart } from "lucide-react";
 import { Product } from '@/types';
-import { getInventory } from '@/services/databaseService';
+import { getProducts } from '@/services/databaseService';
 import ProductCard from '@/components/products/ProductCard';
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 
 const Store: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchInventory = async () => {
-      setIsLoading(true);
-      try {
-        const inventoryData = await getInventory();
-        // Map the inventory data to the Product type
-        const productsData: Product[] = inventoryData.map(item => ({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          price: item.price[0]?.amount || 0, // Assuming the first price is the current price
-          stock: item.quantity,
-          image: '', // You might need to fetch images separately
-          barcode: '', // Barcode info might be in items table
-          location: '', // Location info might be in items table
-          category: item.product_types.name,
-          createdAt: new Date(item.createdAt || Date.now()),
-          updatedAt: new Date(item.updatedAt || Date.now()),
-        }));
-        setProducts(productsData);
-      } catch (error) {
-        console.error("Failed to fetch inventory:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load products. Please try again later.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Fetch products using React Query
+  const { data: products = [], isLoading, error } = useQuery({
+    queryKey: ['store-products'],
+    queryFn: getProducts,
+  });
 
-    fetchInventory();
-  }, [toast]);
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   // Get all unique categories
-  const categories = ['all', ...Array.from(new Set(products.map(product => product.category)))];
+  const categories = ['all', ...Array.from(new Set(products.map(product => product.category || 'Uncategorized')))];
 
   // Filter products by search term and category
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (product.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory && product.stock > 0; // Only show products in stock
   });

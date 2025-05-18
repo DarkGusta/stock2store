@@ -17,7 +17,7 @@ export type Database = {
           photo_url: string | null
           reported_at: string | null
           reporter_id: string
-          status: string | null
+          status: Database["public"]["Enums"]["damage_report_status"]
         }
         Insert: {
           description: string
@@ -26,7 +26,7 @@ export type Database = {
           photo_url?: string | null
           reported_at?: string | null
           reporter_id: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["damage_report_status"]
         }
         Update: {
           description?: string
@@ -35,7 +35,7 @@ export type Database = {
           photo_url?: string | null
           reported_at?: string | null
           reporter_id?: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["damage_report_status"]
         }
         Relationships: [
           {
@@ -62,7 +62,7 @@ export type Database = {
           name: string
           product_type_id: string
           quantity: number
-          status: string
+          status: boolean
           updated_at: string | null
         }
         Insert: {
@@ -72,7 +72,7 @@ export type Database = {
           name: string
           product_type_id: string
           quantity?: number
-          status?: string
+          status?: boolean
           updated_at?: string | null
         }
         Update: {
@@ -82,7 +82,7 @@ export type Database = {
           name?: string
           product_type_id?: string
           quantity?: number
-          status?: string
+          status?: boolean
           updated_at?: string | null
         }
         Relationships: [
@@ -102,7 +102,7 @@ export type Database = {
           location_id: string | null
           price_id: string | null
           serial_id: string
-          status: string | null
+          status: Database["public"]["Enums"]["item_status"]
           updated_at: string | null
         }
         Insert: {
@@ -111,7 +111,7 @@ export type Database = {
           location_id?: string | null
           price_id?: string | null
           serial_id: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["item_status"]
           updated_at?: string | null
         }
         Update: {
@@ -120,7 +120,7 @@ export type Database = {
           location_id?: string | null
           price_id?: string | null
           serial_id?: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["item_status"]
           updated_at?: string | null
         }
         Relationships: [
@@ -153,21 +153,21 @@ export type Database = {
           id: string
           shelf_number: string
           slot_number: string
-          status: string | null
+          status: boolean
         }
         Insert: {
           capacity?: number | null
           id?: string
           shelf_number: string
           slot_number: string
-          status?: string | null
+          status?: boolean
         }
         Update: {
           capacity?: number | null
           id?: string
           shelf_number?: string
           slot_number?: string
-          status?: string | null
+          status?: boolean
         }
         Relationships: []
       }
@@ -490,6 +490,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      damage_report_status: "completed" | "in_progess" | "received"
+      item_status:
+        | "available"
+        | "damaged"
+        | "in_repair"
+        | "sold"
+        | "unavailable"
       order_status:
         | "pending"
         | "processing"
@@ -612,6 +619,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      damage_report_status: ["completed", "in_progess", "received"],
+      item_status: ["available", "damaged", "in_repair", "sold", "unavailable"],
       order_status: [
         "pending",
         "processing",
