@@ -42,9 +42,9 @@ export const hasPermission = async (resource: string, action: string): Promise<b
     }
 
     // Use the security definer function directly via RPC
-    // Fix: Add type annotation to make TypeScript recognize the parameters
+    // Fix: Add both type arguments to the rpc method (Args and Returns)
     const { data, error } = await supabase
-      .rpc<boolean>('user_has_permission', {
+      .rpc<boolean, { user_id: string, req_resource: string, req_action: string }>('user_has_permission', {
         user_id: session.user.id,
         req_resource: resource,
         req_action: action
@@ -55,7 +55,8 @@ export const hasPermission = async (resource: string, action: string): Promise<b
       return false;
     }
 
-    return data || false;
+    // Ensure the return type is always boolean
+    return Boolean(data);
   } catch (error) {
     console.error('Error checking user permissions:', error);
     return false;
