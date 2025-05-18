@@ -7,44 +7,114 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  category: string;
-  image: string;
-  barcode?: string;
-  location?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface InventoryMovement {
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+export interface Role {
   id: string;
-  productId: string;
+  name: string;
+  description?: string;
+}
+
+export interface Permission {
+  id: string;
+  resource: string;
+  action: string;
+  description?: string;
+}
+
+export interface RolePermission {
+  roleId: string;
+  permissionId: string;
+}
+
+export interface Location {
+  id: string;
+  shelfNumber: string;
+  slotNumber: string;
+  status: string;
+  capacity?: number;
+}
+
+export interface ProductType {
+  id: string;
+  name: string;
+  taxType: number;
+  description?: string;
+}
+
+export interface Inventory {
+  id: string;
+  productTypeId: string;
+  name: string;
+  description?: string;
   quantity: number;
-  type: 'in' | 'out';
-  reason: string;
-  performedBy: string;
-  timestamp: Date;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Price {
+  id: string;
+  inventoryId: string;
+  amount: number;
+  effectiveFrom: Date;
+  effectiveTo?: Date;
+  status: boolean;
+  createdAt: Date;
+}
+
+export interface Item {
+  serialId: string;
+  inventoryId: string;
+  locationId?: string;
+  priceId?: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Order {
   id: string;
-  customerId: string;
-  products: {
-    productId: string;
-    quantity: number;
-    priceAtPurchase: number;
-  }[];
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  total: number;
+  userId: string;
+  orderNumber: string;
+  status: OrderStatus;
+  totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  itemSerial: string;
+  price: number;
+}
+
+export interface DamageReport {
+  id: string;
+  itemSerial: string;
+  reporterId: string;
+  description: string;
+  photoUrl?: string;
+  status: string;
+  reportedAt: Date;
+}
+
+export interface Transaction {
+  id: string;
+  itemSerial: string;
+  userId: string;
+  sourceLocationId?: string;
+  destinationLocationId?: string;
+  transactionType: string;
+  orderId?: string;
+  damageReportId?: string;
+  notes?: string;
+  createdAt: Date;
 }
 
 export interface DashboardStats {
