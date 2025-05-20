@@ -41,8 +41,8 @@ export const hasPermission = async (resource: string, action: string): Promise<b
       return false;
     }
 
-    // Use the security definer function directly via RPC
-    // Fix: The first type parameter should be the function name, and the second the return type
+    // Use the security definer function directly via RPC without explicit type parameters
+    // Let TypeScript infer the types based on the function name
     const { data, error } = await supabase
       .rpc('user_has_permission', {
         user_id: session.user.id,
@@ -82,6 +82,7 @@ export const getUserPermissions = async (): Promise<{resource: string, action: s
       .eq('id', session.user.id)
       .single();
     
+    // Make sure we have a string value for the role
     const userRole = profileData?.role || 'customer';
 
     // Then get all permissions for that role

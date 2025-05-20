@@ -30,28 +30,28 @@ const Sidebar: React.FC<SidebarProps> = ({
       />
       
       <div 
-        className={`fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform ${
+        className={`fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 transition-transform duration-300 ease-in-out z-50`}
+        } lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col`}
       >
-        <div className="flex items-center justify-between px-4 h-16 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 h-16 border-b border-gray-200 dark:border-gray-700">
           <Link to={user.role === 'customer' ? '/store' : '/'} className="flex items-center">
-            <span className="text-xl font-semibold text-gray-800">Stock2Store</span>
+            <span className="text-xl font-semibold text-gray-800 dark:text-gray-100">Stock2Store</span>
           </Link>
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
-            <X size={24} className="text-gray-600" />
+            <X size={24} className="text-gray-600 dark:text-gray-300" />
           </button>
         </div>
         
-        <div className="px-4 py-4">
+        <div className="flex-1 px-4 py-4 overflow-y-auto">
           <UserProfile user={user} />
           <SidebarNavigation navigation={navigationItems} userRole={user.role} />
         </div>
         
-        <div className="absolute bottom-0 w-full border-t border-gray-200 p-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
           <Button 
             variant="ghost" 
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" 
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" 
             onClick={onSignOut}
           >
             <LogOut size={20} className="mr-2" />
