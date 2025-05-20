@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -11,6 +12,14 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect customer users to store page if they're on the dashboard
+  useEffect(() => {
+    if (user?.role === 'customer' && window.location.pathname === '/') {
+      navigate('/store');
+    }
+  }, [user, navigate]);
   
   // Close sidebar when screen size changes to large
   useEffect(() => {
@@ -35,6 +44,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const handleSignOut = async () => {
     await signOut();
+    navigate('/login');
   };
 
   return (
