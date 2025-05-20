@@ -4,14 +4,6 @@ import { User, UserRole } from "@/types";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { getUserProfileFixed } from '@/services/users/userProfileService';
 
-// Helper function to get role based on email
-export const getRoleFromEmail = (email: string): UserRole => {
-  if (email.includes('admin')) return 'admin';
-  if (email.includes('warehouse')) return 'warehouse';
-  if (email.includes('analyst')) return 'analyst';
-  return 'customer';
-};
-
 export const getUserProfile = async (supabaseUser: SupabaseUser): Promise<User | null> => {
   try {
     console.log("Getting profile for user:", supabaseUser.id);
@@ -37,7 +29,9 @@ export const getUserProfile = async (supabaseUser: SupabaseUser): Promise<User |
     // No profile found, create one
     console.log("No profile found, creating a new profile for user:", supabaseUser.id);
     const name = supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User';
-    const role = getRoleFromEmail(supabaseUser.email || '');
+    
+    // Default role is 'customer'
+    const role: UserRole = 'customer';
     
     try {
       const { error: insertError } = await supabase
