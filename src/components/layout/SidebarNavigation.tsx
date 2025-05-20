@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types';
+import { getNavigationByRole } from './navigationConfig';
 import { hasPermission } from '@/services/auth/rbacService';
 
 interface NavItemProps {
@@ -31,32 +32,26 @@ const NavItem: React.FC<NavItemProps> = ({ name, href, icon: Icon, active }) => 
 };
 
 interface SidebarNavigationProps {
-  navigation: {
-    name: string;
-    href: string;
-    icon: React.ElementType;
-    allowed: UserRole[];
-    resource?: string;
-    action?: string;
-  }[];
   userRole: UserRole;
 }
 
-const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ navigation, userRole }) => {
+const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ userRole }) => {
   const location = useLocation();
-  const [authorizedNavItems, setAuthorizedNavItems] = useState<typeof navigation>([]);
+  const [authorizedNavItems, setAuthorizedNavItems] = useState<ReturnType<typeof getNavigationByRole>>([]);
   
   // Function to determine if a nav link is active
   const isActive = (path: string) => {
     return location.pathname === path;
   };
   
-  // Use the permissions system to filter navigation items
+  // Get navigation items based on user role and check permissions
   useEffect(() => {
     const checkPermissions = async () => {
+      // Get navigation items based on user role
+      const roleBasedItems = getNavigationByRole(userRole);
       const filteredItems = [];
       
-      for (const item of navigation) {
+      for (const item of roleBasedItems) {
         // If the item has resource and action properties, check permissions
         if (item.resource && item.action) {
           const hasAccess = await hasPermission(item.resource, item.action);
@@ -64,8 +59,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ navigation, userR
             filteredItems.push(item);
           }
         } 
-        // Fall back to role-based check if no resource/action specified
-        else if (item.allowed.includes(userRole)) {
+        // If no resource/action specified, include by default
+        else {
           filteredItems.push(item);
         }
       }
@@ -74,7 +69,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ navigation, userR
     };
     
     checkPermissions();
-  }, [navigation, userRole]);
+  }, [userRole]);
   
   if (authorizedNavItems.length === 0) {
     return (

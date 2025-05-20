@@ -9,17 +9,18 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ElementType;
-  allowed: UserRole[];
+  roles: UserRole[]; // Changed from 'allowed' to 'roles' for clarity
   resource?: string;
   action?: string;
 }
 
+// Define navigation items with their allowed roles
 export const navigationItems: NavItem[] = [
   { 
     name: 'Dashboard', 
     href: '/', 
     icon: LayoutDashboard, 
-    allowed: ['admin', 'warehouse', 'analyst'],
+    roles: ['admin', 'warehouse', 'analyst'],
     resource: 'dashboard',
     action: 'view'
   },
@@ -27,7 +28,7 @@ export const navigationItems: NavItem[] = [
     name: 'Warehouse', 
     href: '/warehouse', 
     icon: Package, 
-    allowed: ['admin', 'warehouse', 'analyst'],
+    roles: ['admin', 'warehouse'],
     resource: 'warehouse',
     action: 'view'
   },
@@ -35,7 +36,7 @@ export const navigationItems: NavItem[] = [
     name: 'Store', 
     href: '/store', 
     icon: Store, 
-    allowed: ['admin', 'customer', 'analyst'],
+    roles: ['admin', 'customer', 'analyst', 'warehouse'],
     resource: 'store',
     action: 'view'
   },
@@ -43,7 +44,7 @@ export const navigationItems: NavItem[] = [
     name: 'Analytics', 
     href: '/analytics', 
     icon: BarChart3, 
-    allowed: ['admin', 'analyst'],
+    roles: ['admin', 'analyst'],
     resource: 'analytics',
     action: 'view'
   },
@@ -51,7 +52,7 @@ export const navigationItems: NavItem[] = [
     name: 'Users', 
     href: '/users', 
     icon: Users, 
-    allowed: ['admin'],
+    roles: ['admin'],
     resource: 'users',
     action: 'view'
   },
@@ -59,7 +60,7 @@ export const navigationItems: NavItem[] = [
     name: 'Shopping Cart', 
     href: '/cart', 
     icon: ShoppingCart, 
-    allowed: ['customer'],
+    roles: ['customer', 'admin', 'analyst'],
     resource: 'cart',
     action: 'view'
   },
@@ -67,7 +68,7 @@ export const navigationItems: NavItem[] = [
     name: 'Returns', 
     href: '/returns', 
     icon: RotateCcw, 
-    allowed: ['customer'],
+    roles: ['customer', 'admin', 'analyst'],
     resource: 'returns',
     action: 'manage'
   },
@@ -75,7 +76,7 @@ export const navigationItems: NavItem[] = [
     name: 'Profile', 
     href: '/profile', 
     icon: User, 
-    allowed: ['admin', 'warehouse', 'analyst', 'customer'],
+    roles: ['admin', 'warehouse', 'analyst', 'customer'],
     resource: 'profile',
     action: 'view'
   },
@@ -83,8 +84,13 @@ export const navigationItems: NavItem[] = [
     name: 'Settings', 
     href: '/settings', 
     icon: Settings, 
-    allowed: ['admin', 'warehouse', 'analyst', 'customer'],
+    roles: ['admin', 'warehouse', 'analyst', 'customer'],
     resource: 'settings',
     action: 'view'
   },
 ];
+
+// Helper function to filter navigation items by role
+export function getNavigationByRole(role: UserRole): NavItem[] {
+  return navigationItems.filter(item => item.roles.includes(role));
+}
