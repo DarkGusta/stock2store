@@ -1,3 +1,6 @@
+## How to run the project
+
+```
 # Step 1: Install the necessary dependencies.
 npm i
 
