@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/auth/AuthProvider';
 import { Toaster } from '@/components/ui/toaster';
@@ -23,8 +23,9 @@ function App() {
         <AuthProvider>
           <Router>
             <Routes>
+              <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={
+              <Route path="/dashboard" element={
                 <ProtectedRoute resource="dashboard" action="view" fallbackPath="/login">
                   <MainLayout>
                     <Index />
