@@ -1,41 +1,69 @@
 
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { User, UserRole } from '@/types';
+import { User } from '@/types';
 
-export const getUserProfile = async (user: SupabaseUser): Promise<User | null> => {
+export const getUserProfile = async (userId: string): Promise<User | null> => {
   try {
-    // Get user profile from the profiles table
-    const { data: profile, error: profileError } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
-      // If no profile exists, create a basic user object
-      return {
-        id: user.id,
-        email: user.email || '',
-        name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-        role: 'customer' as UserRole,
-        createdAt: user.created_at,
-        updatedAt: user.updated_at || user.created_at
-      };
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
     }
 
-    // Return user with profile data
+    if (!data) {
+      return null;
+    }
+
     return {
-      id: user.id,
-      email: user.email || '',
-      name: profile.name || user.user_metadata?.name || user.email?.split('@')[0] || '',
-      role: profile.role || 'customer' as UserRole,
-      createdAt: user.created_at,
-      updatedAt: profile.updated_at || user.updated_at || user.created_at
+      id: data.id,
+      name: data.name || 'User',
+      email: data.email || '',
+      role: data.role || 'customer',
+      avatar: '',
+      createdAt: new Date(data.created_at || Date.now()),
+      updatedAt: new Date(data.updated_at || Date.now())
     };
   } catch (error) {
-    console.error('Unexpected error in getUserProfile:', error);
+    console.error('Error in getUserProfile:', error);
+    return null;
+  }
+};
+
+export const updateUserProfile = async (userId: string, updates: Partial<User>): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        name: updates.name,
+        email: updates.email,
+        role: updates.role,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating user profile:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      name: data.name || 'User',
+      email: data.email || '',
+      role: data.role || 'customer',
+      avatar: '',
+      createdAt: new Date(data.created_at || Date.now()),
+      updatedAt: new Date(data.updated_at || Date.now())
+    };
+  } catch (error) {
+    console.error('Error in updateUserProfile:', error);
     return null;
   }
 };
