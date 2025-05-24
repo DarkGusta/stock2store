@@ -18,52 +18,54 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute resource="dashboard" action="view" fallbackPath="/login">
-                <MainLayout>
-                  <Index />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/warehouse" element={
-              <ProtectedRoute resource="warehouse" action="view" fallbackPath="/login">
-                <MainLayout>
-                  <Warehouse />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/store" element={
-              <ProtectedRoute resource="store" action="view" fallbackPath="/login">
-                <MainLayout>
-                  <Store />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/analytics" element={
-              <ProtectedRoute resource="analytics" action="view" fallbackPath="/login">
-                <MainLayout>
-                  <Analytics />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute resource="profile" action="view" fallbackPath="/login">
-                <MainLayout>
-                  <Profile />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Router>
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={
+                <ProtectedRoute resource="dashboard" action="view" fallbackPath="/login">
+                  <MainLayout>
+                    <Index />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/warehouse" element={
+                <ProtectedRoute resource="warehouse" action="view" fallbackPath="/login">
+                  <MainLayout>
+                    <Warehouse />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/store" element={
+                <ProtectedRoute resource="store" action="view" fallbackPath="/login">
+                  <MainLayout>
+                    <Store />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute resource="analytics" action="view" fallbackPath="/login">
+                  <MainLayout>
+                    <Analytics />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute resource="profile" action="view" fallbackPath="/login">
+                  <MainLayout>
+                    <Profile />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Router>
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    </div>
   );
 }
 
