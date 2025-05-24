@@ -65,7 +65,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900 flex">
       <Sidebar 
         user={user} 
         sidebarOpen={sidebarOpen} 
@@ -73,8 +73,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         onSignOut={handleSignOut} 
       />
 
-      {/* Main content */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
         <Header 
           user={user} 
           setSidebarOpen={setSidebarOpen} 
@@ -82,8 +82,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         />
 
         {/* Main content */}
-        <main className="flex-1 py-8">
-          {children}
+        <main className="flex-1 w-full">
+          <div className="w-full h-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>
