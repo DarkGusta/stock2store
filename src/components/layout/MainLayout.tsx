@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -13,13 +13,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  // Redirect customer users to store page if they're on the dashboard
+  // Role-based redirect logic
   useEffect(() => {
-    if (user?.role === 'customer' && window.location.pathname === '/') {
-      navigate('/store');
+    if (!user) return;
+
+    const currentPath = location.pathname;
+    
+    // Define home pages for each role
+    const roleHomePaths = {
+      customer: '/store',
+      warehouse: '/warehouse', 
+      analyst: '/dashboard',
+      admin: '/'
+    };
+
+    const userHomeRoute = roleHomePaths[user.role] || '/store';
+
+    // If user is on root path, redirect to their appropriate home
+    if (currentPath === '/' && user.role !== 'admin') {
+      console.log(`Redirecting ${user.role} user from / to ${userHomeRoute}`);
+      navigate(userHomeRoute, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.pathname]);
   
   // Close sidebar when screen size changes to large
   useEffect(() => {

@@ -18,11 +18,22 @@ const Login: React.FC = () => {
     }
   }, [user, loading]);
 
-  // If user is already logged in, redirect to dashboard
+  // Role-based redirect after successful login
   useEffect(() => {
     if (user && !loading) {
-      console.log("User already authenticated, redirecting to dashboard");
-      navigate('/', { replace: true });
+      console.log(`User authenticated with role: ${user.role}, redirecting...`);
+      
+      // Define redirect routes based on user role
+      const roleRedirects = {
+        customer: '/store',
+        warehouse: '/warehouse',
+        analyst: '/dashboard', 
+        admin: '/'
+      };
+
+      const redirectTo = roleRedirects[user.role] || '/store';
+      console.log(`Redirecting ${user.role} user to ${redirectTo}`);
+      navigate(redirectTo, { replace: true });
     }
   }, [user, navigate, loading]);
 
@@ -33,7 +44,7 @@ const Login: React.FC = () => {
 
   // Don't render login page if user is already logged in
   if (user) {
-    return <LoadingSpinner message="Redirecting to dashboard..." />;
+    return <LoadingSpinner message="Redirecting..." />;
   }
 
   return (
