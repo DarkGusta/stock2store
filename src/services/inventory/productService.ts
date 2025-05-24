@@ -9,22 +9,10 @@ export const getProducts = async (): Promise<Product[]> => {
   console.log('Fetching products from database...');
   
   try {
-    // Fetch inventory items with their related data using joins
+    // First, let's try a simpler approach - get all inventory items
     const { data: inventoryData, error: inventoryError } = await supabase
       .from('inventory')
-      .select(`
-        id, 
-        name, 
-        description, 
-        quantity, 
-        created_at, 
-        updated_at, 
-        product_type_id,
-        product_types!inner(
-          id,
-          name
-        )
-      `);
+      .select('*');
       
     if (inventoryError) {
       console.error('Error fetching inventory:', inventoryError);
@@ -38,11 +26,30 @@ export const getProducts = async (): Promise<Product[]> => {
       return [];
     }
     
+    // Get all product types
+    const { data: productTypes, error: typesError } = await supabase
+      .from('product_types')
+      .select('*');
+      
+    if (typesError) {
+      console.error('Error fetching product types:', typesError);
+    }
+    
+    console.log('Product types:', productTypes);
+    
+    // Create a map of product types for quick lookup
+    const typeMap = new Map();
+    if (productTypes) {
+      productTypes.forEach((type: any) => {
+        typeMap.set(type.id, type.name);
+      });
+    }
+    
     // Get current active prices for all inventory items
     const inventoryIds = inventoryData.map(item => item.id);
     const { data: priceData, error: priceError } = await supabase
       .from('price')
-      .select('inventory_id, amount, effective_from, status')
+      .select('*')
       .in('inventory_id', inventoryIds)
       .eq('status', true)
       .order('effective_from', { ascending: false });
@@ -63,7 +70,7 @@ export const getProducts = async (): Promise<Product[]> => {
       });
     }
     
-    // Map inventory data to products with proper prices
+    // Map inventory data to products
     const products = inventoryData.map((item: any) => ({
       id: item.id || '',
       name: item.name || 'Unnamed Product',
@@ -71,7 +78,7 @@ export const getProducts = async (): Promise<Product[]> => {
       price: priceMap.get(item.id) || 0,
       stock: item.quantity || 0,
       image: '',
-      category: item.product_types?.name || 'Uncategorized',
+      category: typeMap.get(item.product_type_id) || 'Uncategorized',
       location: '',
       barcode: '',
       createdAt: new Date(item.created_at || Date.now()),
