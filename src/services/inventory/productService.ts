@@ -1,27 +1,41 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
 /**
- * Gets products for inventory management with proper price fetching
+ * Gets products for inventory management with proper price fetching using JOIN
  */
 export const getProducts = async (): Promise<Product[]> => {
   console.log('Fetching products from database...');
   
   try {
-    // First, let's try a simpler approach - get all inventory items
-    const { data: inventoryData, error: inventoryError } = await supabase
+    // Use JOIN to get inventory with current active prices in one query
+    const { data: inventoryWithPrices, error: inventoryError } = await supabase
       .from('inventory')
-      .select('*');
+      .select(`
+        id,
+        name,
+        description,
+        quantity,
+        created_at,
+        updated_at,
+        product_type_id,
+        price!left(
+          amount,
+          status,
+          effective_from
+        )
+      `)
+      .eq('price.status', true)
+      .order('price.effective_from', { ascending: false });
       
     if (inventoryError) {
-      console.error('Error fetching inventory:', inventoryError);
+      console.error('Error fetching inventory with prices:', inventoryError);
       throw inventoryError;
     }
     
-    console.log('Inventory data:', inventoryData);
+    console.log('Inventory with prices data:', inventoryWithPrices);
     
-    if (!inventoryData || inventoryData.length === 0) {
+    if (!inventoryWithPrices || inventoryWithPrices.length === 0) {
       console.log('No inventory data found');
       return [];
     }
@@ -45,47 +59,31 @@ export const getProducts = async (): Promise<Product[]> => {
       });
     }
     
-    // Get current active prices for all inventory items
-    const inventoryIds = inventoryData.map(item => item.id);
-    const { data: priceData, error: priceError } = await supabase
-      .from('price')
-      .select('*')
-      .in('inventory_id', inventoryIds)
-      .eq('status', true)
-      .order('effective_from', { ascending: false });
+    // Map inventory data to products with joined prices
+    const products = inventoryWithPrices.map((item: any) => {
+      // Get the most recent active price (first one due to ordering)
+      const currentPrice = Array.isArray(item.price) && item.price.length > 0 
+        ? item.price[0].amount 
+        : 0;
       
-    if (priceError) {
-      console.error('Error fetching prices:', priceError);
-    }
+      console.log(`Product ${item.name} - Price data:`, item.price, 'Current price:', currentPrice);
+      
+      return {
+        id: item.id || '',
+        name: item.name || 'Unnamed Product',
+        description: item.description || '',
+        price: currentPrice,
+        stock: item.quantity || 0,
+        image: '',
+        category: typeMap.get(item.product_type_id) || 'Uncategorized',
+        location: '',
+        barcode: '',
+        createdAt: new Date(item.created_at || Date.now()),
+        updatedAt: new Date(item.updated_at || Date.now())
+      };
+    });
     
-    console.log('Price data:', priceData);
-    
-    // Create a map of prices for quick lookup (get the most recent active price)
-    const priceMap = new Map();
-    if (priceData) {
-      priceData.forEach((price: any) => {
-        if (!priceMap.has(price.inventory_id)) {
-          priceMap.set(price.inventory_id, price.amount);
-        }
-      });
-    }
-    
-    // Map inventory data to products
-    const products = inventoryData.map((item: any) => ({
-      id: item.id || '',
-      name: item.name || 'Unnamed Product',
-      description: item.description || '',
-      price: priceMap.get(item.id) || 0,
-      stock: item.quantity || 0,
-      image: '',
-      category: typeMap.get(item.product_type_id) || 'Uncategorized',
-      location: '',
-      barcode: '',
-      createdAt: new Date(item.created_at || Date.now()),
-      updatedAt: new Date(item.updated_at || Date.now())
-    }));
-    
-    console.log('Final products with prices:', products);
+    console.log('Final products with joined prices:', products);
     return products;
   } catch (error) {
     console.error('Error in getProducts method:', error);
