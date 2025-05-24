@@ -11,7 +11,7 @@ import MainLayout from '@/components/layout/MainLayout';
 const Analytics = () => {
   return (
     <MainLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -84,7 +84,7 @@ const Analytics = () => {
         </div>
 
         {/* Main Analytics Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Charts Section */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="revenue" className="w-full">
@@ -94,7 +94,7 @@ const Analytics = () => {
                 <TabsTrigger value="customers">Customers</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="revenue" className="space-y-4">
+              <TabsContent value="revenue" className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -115,7 +115,7 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="products">
+              <TabsContent value="products" className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -136,7 +136,7 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="customers">
+              <TabsContent value="customers" className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
