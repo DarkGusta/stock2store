@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
@@ -25,8 +26,7 @@ export const getProducts = async (): Promise<Product[]> => {
           effective_from
         )
       `)
-      .eq('price.status', true)
-      .order('price.effective_from', { ascending: false });
+      .eq('price.status', true);
       
     if (inventoryError) {
       console.error('Error fetching inventory with prices:', inventoryError);
@@ -61,10 +61,15 @@ export const getProducts = async (): Promise<Product[]> => {
     
     // Map inventory data to products with joined prices
     const products = inventoryWithPrices.map((item: any) => {
-      // Get the most recent active price (first one due to ordering)
-      const currentPrice = Array.isArray(item.price) && item.price.length > 0 
-        ? item.price[0].amount 
-        : 0;
+      // Get the most recent active price (sort by effective_from if multiple prices exist)
+      let currentPrice = 0;
+      if (Array.isArray(item.price) && item.price.length > 0) {
+        // Sort prices by effective_from to get the most recent
+        const sortedPrices = item.price.sort((a: any, b: any) => 
+          new Date(b.effective_from).getTime() - new Date(a.effective_from).getTime()
+        );
+        currentPrice = sortedPrices[0].amount;
+      }
       
       console.log(`Product ${item.name} - Price data:`, item.price, 'Current price:', currentPrice);
       
