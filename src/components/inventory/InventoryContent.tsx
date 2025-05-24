@@ -21,7 +21,7 @@ import {
 import ProductCard from '@/components/products/ProductCard';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types';
-import { getProducts } from '@/services'; // Updated import path
+import { getProducts } from '@/services/inventory/productService';
 import { useQuery } from '@tanstack/react-query';
 import InventoryHeader from './InventoryHeader';
 import InventoryFilters from './InventoryFilters';
@@ -40,7 +40,7 @@ const InventoryContent = () => {
   const { data: products = [], isLoading, error, refetch } = useQuery({
     queryKey: ['inventory-products'],
     queryFn: getProducts,
-    retry: false  // Using the correct property 'retry' instead of 'retryOnError'
+    retry: false
   });
 
   // Log products for debugging

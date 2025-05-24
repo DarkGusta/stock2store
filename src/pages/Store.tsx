@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingCart, Search, Star, Plus, Minus } from 'lucide-react';
-import { getProducts } from '@/services';
+import { getProducts } from '@/services/inventory/productService';
 import { useQuery } from '@tanstack/react-query';
 import { Product } from '@/types';
 
@@ -23,7 +23,7 @@ const Store = () => {
   const [sortBy, setSortBy] = useState('name-asc');
   const { toast } = useToast();
 
-  // Fetch products using React Query
+  // Fetch products using React Query with the correct service
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ['store-products'],
     queryFn: getProducts,
