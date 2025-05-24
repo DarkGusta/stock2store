@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -28,16 +29,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     const checkPermission = async () => {
-      if (!user) {
+      if (!user || loading) {
         setHasAccess(false);
-        setPermissionChecked(true);
+        setPermissionChecked(!loading);
         return;
       }
 
       try {
+        console.log(`Checking permission for ${resource}:${action} for user role: ${user.role}`);
         const allowed = await hasPermission(resource, action);
+        console.log(`Permission result: ${allowed}`);
         setHasAccess(allowed);
+        
         if (!allowed) {
+          console.log(`Access denied for ${resource}:${action}`);
           toast({
             title: "Access denied",
             description: `You don't have permission to access this resource.`,
@@ -52,16 +57,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       }
     };
 
-    if (!loading) {
-      checkPermission();
-    }
-  }, [user, loading, resource, action, toast]);
+    // Add a small delay to ensure RBAC system is initialized
+    const timeoutId = setTimeout(checkPermission, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [user?.id, user?.role, loading, resource, action, toast]);
 
-  // Show loading state
+  // Show loading state while checking auth or permissions
   if (loading || !permissionChecked) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
