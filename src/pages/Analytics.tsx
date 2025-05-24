@@ -9,14 +9,18 @@ import AnalyticsSidebar from '@/components/analytics/AnalyticsSidebar';
 const Analytics = () => {
   return (
     <MainLayout>
-      <div className="space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         <AnalyticsHeader />
+        
         <MetricsCards />
         
-        {/* Main Analytics Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <AnalyticsCharts />
-          <AnalyticsSidebar />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            <AnalyticsCharts />
+          </div>
+          <div className="lg:col-span-1">
+            <AnalyticsSidebar />
+          </div>
         </div>
       </div>
     </MainLayout>
