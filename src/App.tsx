@@ -16,12 +16,15 @@ import './App.css';
 
 const queryClient = new QueryClient();
 
+// Set basename for GitHub Pages deployment
+const basename = import.meta.env.PROD ? '/stock2store' : '';
+
 function App() {
   return (
     <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900">
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Router>
+          <Router basename={basename}>
             <Routes>
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />

@@ -25,7 +25,7 @@ const NotFound = () => {
           The page may have been moved, deleted, or never existed in the first place.
         </p>
         <Button asChild>
-          <Link to="/">Return to Dashboard</Link>
+          <Link to="/login">Go to Login</Link>
         </Button>
       </div>
     </div>
