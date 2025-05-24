@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, AlertTriangle, TrendingUp, BarChart3, Search, Filter } from 'lucide-react';
 import WarehouseOverview from '@/components/warehouse/WarehouseOverview';
-import AnalyticsCard from '@/components/warehouse/AnalyticsCard';
 import LowStockAlert from '@/components/warehouse/LowStockAlert';
 import InventoryMovementsTable from '@/components/warehouse/InventoryMovementsTable';
 import ShelfMapping from '@/components/warehouse/ShelfMapping';
@@ -110,11 +109,45 @@ const Warehouse = () => {
         </TabsContent>
         
         <TabsContent value="analytics" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnalyticsCard title="Total Products" value="345" icon={Package} />
-            <AnalyticsCard title="Low Stock Items" value="12" icon={AlertTriangle} />
-            <AnalyticsCard title="Inventory Turnover" value="7.2" icon={TrendingUp} />
-            <AnalyticsCard title="Category Distribution" value="65%" icon={BarChart3} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{products.length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{products.filter(p => p.stock <= 5).length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Inventory Turnover</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">7.2</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Categories</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {[...new Set(products.map(p => p.category))].length}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
         

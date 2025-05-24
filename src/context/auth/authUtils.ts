@@ -1,3 +1,4 @@
+
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserProfile } from "@/services/auth/userProfileService";
@@ -32,7 +33,7 @@ export const fetchCurrentUser = async (): Promise<User | null> => {
 
     if (!session) return null;
 
-    return getUserProfile(session.user);
+    return getUserProfile(session.user.id);
   } catch (error) {
     console.error("Error in fetchCurrentUser:", error);
     return null;

@@ -138,7 +138,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
     if (!session) return null;
 
-    return getUserProfile(session.user);
+    return getUserProfile(session.user.id);
   } catch (error) {
     console.error("Error in getCurrentUser:", error);
     return null;
