@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -13,13 +13,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  // Redirect customer users to store page if they're on the dashboard
+  // Role-based redirect logic
   useEffect(() => {
-    if (user?.role === 'customer' && window.location.pathname === '/') {
-      navigate('/store');
+    if (!user) return;
+
+    const currentPath = location.pathname;
+    
+    // Define home pages for each role
+    const roleHomePaths = {
+      customer: '/store',
+      warehouse: '/warehouse', 
+      analyst: '/dashboard',
+      admin: '/'
+    };
+
+    const userHomeRoute = roleHomePaths[user.role] || '/store';
+
+    // If user is on root path, redirect to their appropriate home
+    if (currentPath === '/' && user.role !== 'admin') {
+      console.log(`Redirecting ${user.role} user from / to ${userHomeRoute}`);
+      navigate(userHomeRoute, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.pathname]);
   
   // Close sidebar when screen size changes to large
   useEffect(() => {
@@ -48,7 +65,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900 flex">
       <Sidebar 
         user={user} 
         sidebarOpen={sidebarOpen} 
@@ -56,8 +73,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         onSignOut={handleSignOut} 
       />
 
-      {/* Main content */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
         <Header 
           user={user} 
           setSidebarOpen={setSidebarOpen} 
@@ -65,8 +82,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         />
 
         {/* Main content */}
-        <main className="flex-1 py-8">
-          {children}
+        <main className="flex-1 w-full">
+          <div className="w-full h-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>

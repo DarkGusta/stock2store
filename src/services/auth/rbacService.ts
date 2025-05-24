@@ -2,6 +2,93 @@
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
 
+// Define fallback permissions for each role when RBAC tables are empty
+const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string }[]> = {
+  admin: [
+    { resource: 'dashboard', action: 'view' },
+    { resource: 'warehouse', action: 'view' },
+    { resource: 'warehouse', action: 'manage' },
+    { resource: 'store', action: 'view' },
+    { resource: 'store', action: 'purchase' },
+    { resource: 'analytics', action: 'view' },
+    { resource: 'users', action: 'view' },
+    { resource: 'users', action: 'manage' },
+    { resource: 'profile', action: 'view' },
+    { resource: 'profile', action: 'update' },
+    { resource: 'settings', action: 'view' },
+    { resource: 'settings', action: 'update' },
+    { resource: 'cart', action: 'view' },
+    { resource: 'cart', action: 'update' },
+    { resource: 'returns', action: 'view' },
+    { resource: 'returns', action: 'manage' }
+  ],
+  warehouse: [
+    { resource: 'dashboard', action: 'view' },
+    { resource: 'warehouse', action: 'view' },
+    { resource: 'warehouse', action: 'manage' },
+    { resource: 'profile', action: 'view' },
+    { resource: 'profile', action: 'update' },
+    { resource: 'settings', action: 'view' },
+    { resource: 'settings', action: 'update' }
+  ],
+  customer: [
+    { resource: 'store', action: 'view' },
+    { resource: 'store', action: 'purchase' },
+    { resource: 'profile', action: 'view' },
+    { resource: 'profile', action: 'update' },
+    { resource: 'settings', action: 'view' },
+    { resource: 'settings', action: 'update' },
+    { resource: 'cart', action: 'view' },
+    { resource: 'cart', action: 'update' },
+    { resource: 'returns', action: 'view' },
+    { resource: 'returns', action: 'manage' }
+  ],
+  analyst: [
+    { resource: 'dashboard', action: 'view' },
+    { resource: 'warehouse', action: 'view' },
+    { resource: 'analytics', action: 'view' },
+    { resource: 'profile', action: 'view' },
+    { resource: 'profile', action: 'update' },
+    { resource: 'settings', action: 'view' }
+  ]
+};
+
+/**
+ * Checks if RBAC tables are properly initialized
+ */
+const isRBACInitialized = async (): Promise<boolean> => {
+  try {
+    // Check if we have any roles and permissions
+    const { data: roles, error: rolesError } = await supabase
+      .from('roles')
+      .select('id')
+      .limit(1);
+
+    const { data: permissions, error: permissionsError } = await supabase
+      .from('permissions')
+      .select('id')
+      .limit(1);
+
+    if (rolesError || permissionsError) {
+      console.log('Error checking RBAC initialization:', rolesError || permissionsError);
+      return false;
+    }
+
+    return roles && roles.length > 0 && permissions && permissions.length > 0;
+  } catch (error) {
+    console.error('Error checking RBAC initialization:', error);
+    return false;
+  }
+};
+
+/**
+ * Fallback permission check using simple role-based logic
+ */
+const checkFallbackPermission = (userRole: UserRole, resource: string, action: string): boolean => {
+  const rolePermissions = FALLBACK_PERMISSIONS[userRole] || [];
+  return rolePermissions.some(perm => perm.resource === resource && perm.action === action);
+};
+
 /**
  * Checks if the current user has a specific role
  */
@@ -15,7 +102,6 @@ export const hasRole = async (role: UserRole): Promise<boolean> => {
     }
 
     // Check if user has the role directly from profiles
-    // This uses the existing user_role approach
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -38,11 +124,34 @@ export const hasPermission = async (resource: string, action: string): Promise<b
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session?.user) {
+      console.log('No user session found');
       return false;
     }
 
-    // Use the security definer function directly via RPC without explicit type parameters
-    // Let TypeScript infer the types based on the function name
+    // Get user's role from profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile?.role) {
+      console.log('No user role found in profile');
+      return false;
+    }
+
+    const userRole = profile.role as UserRole;
+
+    // Check if RBAC system is initialized
+    const rbacInitialized = await isRBACInitialized();
+    
+    if (!rbacInitialized) {
+      console.log('RBAC not initialized, using fallback permissions for role:', userRole);
+      return checkFallbackPermission(userRole, resource, action);
+    }
+
+    // Use the full RBAC system
+    console.log('Using full RBAC system for permission check');
     const { data, error } = await supabase
       .rpc('user_has_permission', {
         user_id: session.user.id,
@@ -51,14 +160,16 @@ export const hasPermission = async (resource: string, action: string): Promise<b
       });
 
     if (error) {
-      console.error('Error checking permissions:', error);
-      return false;
+      console.error('Error checking permissions via RPC:', error);
+      // Fallback to simple role-based check if RPC fails
+      console.log('Falling back to role-based permissions due to RPC error');
+      return checkFallbackPermission(userRole, resource, action);
     }
 
-    // Ensure the return type is always boolean
     return Boolean(data);
   } catch (error) {
     console.error('Error checking user permissions:', error);
+    // Fallback to denying access on error
     return false;
   }
 };
@@ -82,10 +193,17 @@ export const getUserPermissions = async (): Promise<{resource: string, action: s
       .eq('id', session.user.id)
       .single();
     
-    // Make sure we have a string value for the role
-    const userRole = profileData?.role || 'customer';
+    const userRole = profileData?.role as UserRole || 'customer';
 
-    // Then get all permissions for that role
+    // Check if RBAC is initialized
+    const rbacInitialized = await isRBACInitialized();
+    
+    if (!rbacInitialized) {
+      // Return fallback permissions
+      return FALLBACK_PERMISSIONS[userRole] || [];
+    }
+
+    // Get permissions from RBAC system
     const { data, error } = await supabase
       .from('permissions')
       .select(`
@@ -102,16 +220,13 @@ export const getUserPermissions = async (): Promise<{resource: string, action: s
 
     if (error) {
       console.error('Error fetching user permissions:', error);
-      return [];
+      return FALLBACK_PERMISSIONS[userRole] || [];
     }
 
-    // Extract the permissions
-    const permissions = (data || []).map(perm => ({
+    return (data || []).map(perm => ({
       resource: perm.resource,
       action: perm.action
     }));
-
-    return permissions;
   } catch (error) {
     console.error('Error fetching user permissions:', error);
     return [];
@@ -136,8 +251,6 @@ export const assignRoleToUser = async (userId: string, roleName: string): Promis
     }
 
     // Now update the user's profile
-    // We're casting roleName to UserRole to satisfy TypeScript
-    // This is safe as long as roleName matches one of the enum values
     const { error: updateError } = await supabase
       .from('profiles')
       .update({ role: roleName as UserRole })
@@ -157,141 +270,18 @@ export const assignRoleToUser = async (userId: string, roleName: string): Promis
 
 /**
  * Initialize the RBAC system with default roles and permissions
- * This should be run once during setup or when migrating from the enum-based system
  */
 export const initializeRBAC = async (): Promise<boolean> => {
   try {
-    // First check if roles already exist
-    const { data: existingRoles } = await supabase
-      .from('roles')
-      .select('*');
-
-    if (existingRoles && existingRoles.length > 0) {
+    // Check if already initialized
+    const initialized = await isRBACInitialized();
+    if (initialized) {
       console.log('RBAC system already initialized');
       return true;
     }
 
-    // Define the default roles
-    const roles = [
-      { name: 'admin', description: 'Full system access' },
-      { name: 'warehouse', description: 'Warehouse management access' },
-      { name: 'customer', description: 'Customer access to shopping and orders' },
-      { name: 'analyst', description: 'Read-only access to analytics data' }
-    ];
-
-    // Insert the roles
-    const { error: rolesError } = await supabase
-      .from('roles')
-      .insert(roles);
-
-    if (rolesError) {
-      console.error('Error creating roles:', rolesError);
-      return false;
-    }
-
-    // Define basic permissions
-    const permissions = [
-      { resource: 'dashboard', action: 'view' },
-      { resource: 'warehouse', action: 'view' },
-      { resource: 'warehouse', action: 'manage' },
-      { resource: 'store', action: 'view' },
-      { resource: 'store', action: 'purchase' },
-      { resource: 'analytics', action: 'view' },
-      { resource: 'users', action: 'view' },
-      { resource: 'users', action: 'manage' },
-      { resource: 'profile', action: 'view' },
-      { resource: 'profile', action: 'update' },
-      { resource: 'settings', action: 'view' },
-      { resource: 'settings', action: 'update' },
-      { resource: 'cart', action: 'view' },
-      { resource: 'cart', action: 'update' },
-      { resource: 'returns', action: 'manage' }
-    ];
-
-    // Insert the permissions
-    const { error: permissionsError } = await supabase
-      .from('permissions')
-      .insert(permissions);
-
-    if (permissionsError) {
-      console.error('Error creating permissions:', permissionsError);
-      return false;
-    }
-
-    // Now fetch the created roles and permissions to establish the connections
-    const { data: roleIds } = await supabase.from('roles').select('id, name');
-    const { data: permissionIds } = await supabase.from('permissions').select('id, resource, action');
-
-    if (!roleIds || !permissionIds) {
-      console.error('Error fetching role or permission IDs');
-      return false;
-    }
-
-    // Define role-permission mappings
-    const rolePermissionMappings: { role_id: string, permission_id: string }[] = [];
-
-    // Admin role - all permissions
-    const adminRole = roleIds.find(r => r.name === 'admin');
-    if (adminRole) {
-      permissionIds.forEach(p => {
-        rolePermissionMappings.push({
-          role_id: adminRole.id,
-          permission_id: p.id
-        });
-      });
-    }
-
-    // Warehouse role
-    const warehouseRole = roleIds.find(r => r.name === 'warehouse');
-    if (warehouseRole) {
-      permissionIds.forEach(p => {
-        if (['dashboard', 'warehouse', 'profile', 'settings'].includes(p.resource)) {
-          rolePermissionMappings.push({
-            role_id: warehouseRole.id,
-            permission_id: p.id
-          });
-        }
-      });
-    }
-
-    // Customer role
-    const customerRole = roleIds.find(r => r.name === 'customer');
-    if (customerRole) {
-      permissionIds.forEach(p => {
-        if (['store', 'profile', 'settings', 'cart', 'returns'].includes(p.resource)) {
-          rolePermissionMappings.push({
-            role_id: customerRole.id,
-            permission_id: p.id
-          });
-        }
-      });
-    }
-
-    // Analyst role
-    const analystRole = roleIds.find(r => r.name === 'analyst');
-    if (analystRole) {
-      permissionIds.forEach(p => {
-        if (['dashboard', 'warehouse', 'analytics', 'profile', 'settings'].includes(p.resource) && p.action === 'view') {
-          rolePermissionMappings.push({
-            role_id: analystRole.id,
-            permission_id: p.id
-          });
-        }
-      });
-    }
-
-    // Insert the role-permission mappings
-    const { error: mappingError } = await supabase
-      .from('role_permissions')
-      .insert(rolePermissionMappings);
-
-    if (mappingError) {
-      console.error('Error creating role-permission mappings:', mappingError);
-      return false;
-    }
-
-    console.log('RBAC system successfully initialized');
-    return true;
+    console.log('RBAC system not initialized, but this should be handled by the SQL migration');
+    return false;
   } catch (error) {
     console.error('Error initializing RBAC system:', error);
     return false;

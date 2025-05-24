@@ -10,19 +10,30 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   
-  // Clean up auth state when loading the login page
+  // Clean up auth state when loading the login page (only if not authenticated)
   useEffect(() => {
     if (!user && !loading) {
-      // If we're on the login page and not logged in, ensure clean auth state
+      console.log("Cleaning up auth state on login page");
       cleanupAuthState();
     }
-  }, []);
+  }, [user, loading]);
 
-  // If user is already logged in, redirect to dashboard
+  // Role-based redirect after successful login
   useEffect(() => {
     if (user && !loading) {
-      console.log("User already logged in, redirecting to dashboard");
-      navigate('/', { replace: true });
+      console.log(`User authenticated with role: ${user.role}, redirecting...`);
+      
+      // Define redirect routes based on user role
+      const roleRedirects = {
+        customer: '/store',
+        warehouse: '/warehouse',
+        analyst: '/dashboard', 
+        admin: '/'
+      };
+
+      const redirectTo = roleRedirects[user.role] || '/store';
+      console.log(`Redirecting ${user.role} user to ${redirectTo}`);
+      navigate(redirectTo, { replace: true });
     }
   }, [user, navigate, loading]);
 
@@ -33,7 +44,7 @@ const Login: React.FC = () => {
 
   // Don't render login page if user is already logged in
   if (user) {
-    return <LoadingSpinner message="You are already logged in. Redirecting to dashboard..." />;
+    return <LoadingSpinner message="Redirecting..." />;
   }
 
   return (
