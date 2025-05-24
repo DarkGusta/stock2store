@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
@@ -9,7 +8,7 @@ export const getProducts = async (): Promise<Product[]> => {
   console.log('Fetching products from database...');
   
   try {
-    // Use JOIN to get inventory with current active prices in one query
+    // Use a more explicit JOIN approach to get inventory with current active prices
     const { data: inventoryWithPrices, error: inventoryError } = await supabase
       .from('inventory')
       .select(`
@@ -20,7 +19,7 @@ export const getProducts = async (): Promise<Product[]> => {
         created_at,
         updated_at,
         product_type_id,
-        price!left(
+        price!inner(
           amount,
           status,
           effective_from
@@ -30,14 +29,17 @@ export const getProducts = async (): Promise<Product[]> => {
       
     if (inventoryError) {
       console.error('Error fetching inventory with prices:', inventoryError);
-      throw inventoryError;
+      
+      // Fallback: try the alternative method if the JOIN fails
+      console.log('Trying alternative method...');
+      return await getProductsAlternative();
     }
     
     console.log('Inventory with prices data:', inventoryWithPrices);
     
     if (!inventoryWithPrices || inventoryWithPrices.length === 0) {
-      console.log('No inventory data found');
-      return [];
+      console.log('No inventory data found with JOIN, trying alternative method...');
+      return await getProductsAlternative();
     }
     
     // Get all product types
@@ -92,7 +94,8 @@ export const getProducts = async (): Promise<Product[]> => {
     return products;
   } catch (error) {
     console.error('Error in getProducts method:', error);
-    return [];
+    console.log('Falling back to alternative method...');
+    return await getProductsAlternative();
   }
 };
 
@@ -147,6 +150,8 @@ export const getProductsAlternative = async (): Promise<Product[]> => {
     
     // Get current active prices for all inventory items
     const inventoryIds = inventoryData.map(item => item.id);
+    console.log('Fetching prices for inventory IDs:', inventoryIds);
+    
     const { data: priceData, error: priceError } = await supabase
       .from('price')
       .select('inventory_id, amount, effective_from, status')
@@ -158,30 +163,40 @@ export const getProductsAlternative = async (): Promise<Product[]> => {
       console.error('Error fetching prices:', priceError);
     }
     
+    console.log('Price data fetched:', priceData);
+    
     // Create a map of prices for quick lookup (get the most recent active price)
     const priceMap = new Map();
     if (priceData) {
       priceData.forEach((price: any) => {
         if (!priceMap.has(price.inventory_id)) {
           priceMap.set(price.inventory_id, price.amount);
+          console.log(`Setting price for inventory ${price.inventory_id}: $${price.amount}`);
         }
       });
     }
     
+    console.log('Price map created:', Array.from(priceMap.entries()));
+    
     // Map inventory data to products
-    const products = inventoryData.map((item: any) => ({
-      id: item.id || '',
-      name: item.name || 'Unnamed Product',
-      description: item.description || '',
-      price: priceMap.get(item.id) || 0,
-      stock: item.quantity || 0,
-      image: '',
-      category: typeMap.get(item.product_type_id) || 'Uncategorized',
-      location: '',
-      barcode: '',
-      createdAt: new Date(item.created_at || Date.now()),
-      updatedAt: new Date(item.updated_at || Date.now())
-    }));
+    const products = inventoryData.map((item: any) => {
+      const price = priceMap.get(item.id) || 0;
+      console.log(`Product ${item.name} (ID: ${item.id}) - Price: $${price}`);
+      
+      return {
+        id: item.id || '',
+        name: item.name || 'Unnamed Product',
+        description: item.description || '',
+        price: price,
+        stock: item.quantity || 0,
+        image: '',
+        category: typeMap.get(item.product_type_id) || 'Uncategorized',
+        location: '',
+        barcode: '',
+        createdAt: new Date(item.created_at || Date.now()),
+        updatedAt: new Date(item.updated_at || Date.now())
+      };
+    });
     
     console.log('Products from alternative method:', products);
     return products;
