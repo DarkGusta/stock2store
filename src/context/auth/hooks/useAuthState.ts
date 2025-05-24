@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+
+// Import directly from authUtils since we removed the service index
 import { fetchCurrentUser } from "../authUtils";
 
 export interface AuthState {
