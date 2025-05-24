@@ -1,10 +1,9 @@
-
 import React, { useEffect } from "react";
 import { AuthContext } from "./AuthContext";
-import { signOut as authSignOut } from "@/services/auth";
+import { signOut as authSignOut } from "@/services/auth/authCore";
 import { useAuthState } from "./hooks/useAuthState";
 import { initializeRBAC } from "@/services/auth/rbacService";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [{ user, loading }, setUser] = useAuthState();

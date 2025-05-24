@@ -1,7 +1,6 @@
-
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserProfile } from "@/services/auth";
+import { getUserProfile } from "@/services/auth/userProfileService";
 
 // Function to clean up auth state
 export const cleanupAuthState = () => {

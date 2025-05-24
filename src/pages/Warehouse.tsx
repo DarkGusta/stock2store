@@ -1,132 +1,136 @@
-
 import React, { useState } from 'react';
-import { ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Link } from 'react-router-dom';
-import ProductCard from '@/components/products/ProductCard';
-import { products, inventoryMovements } from '@/utils/mockData';
-import { Product } from '@/types';
-import ShelfMapping from '@/components/warehouse/ShelfMapping';
+import { Package, AlertTriangle, TrendingUp, BarChart3, Search, Filter } from 'lucide-react';
 import WarehouseOverview from '@/components/warehouse/WarehouseOverview';
-import LowStockAlert from '@/components/warehouse/LowStockAlert';
 import AnalyticsCard from '@/components/warehouse/AnalyticsCard';
-import ProductDetail from '@/components/warehouse/ProductDetail';
+import LowStockAlert from '@/components/warehouse/LowStockAlert';
 import InventoryMovementsTable from '@/components/warehouse/InventoryMovementsTable';
+import ShelfMapping from '@/components/warehouse/ShelfMapping';
+import { getProducts } from '@/services';
+import { useQuery } from '@tanstack/react-query';
 
 const Warehouse = () => {
-  const [activeTab, setActiveTab] = useState<string>('inventory');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
-  // Sort products by stock level (low to high)
-  const sortedProducts = [...products].sort((a, b) => a.stock - b.stock);
-  
-  // Sort movements by timestamp (most recent first)
-  const sortedMovements = [...inventoryMovements].sort(
-    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+
+  const { data: products, isLoading, error } = useQuery({
+    queryKey: ['warehouse-products'],
+    queryFn: getProducts,
+  });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  const filteredProducts = products?.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (filterCategory === 'all' || product.category === filterCategory)
   );
 
-  // Helper function
-  const getProductById = (id: string): Product | undefined => {
-    return products.find(p => p.id === id);
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Warehouse</h1>
-          <p className="text-gray-500">Manage inventory and warehouse operations</p>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Warehouse Management</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage your inventory, track stock levels, and analyze warehouse operations.
+          </p>
         </div>
-        <div className="flex gap-3">
-          <Link to="/inventory">
-            <Button variant="secondary">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View All Inventory
-            </Button>
-          </Link>
+        <Button>
+          <Package size={16} className="mr-2" />
+          Add New Product
+        </Button>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Input
+          type="search"
+          placeholder="Search products..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <div className="md:col-span-2 flex items-center space-x-4">
+          <select
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+          >
+            <option value="all">All Categories</option>
+            <option value="electronics">Electronics</option>
+            <option value="clothing">Clothing</option>
+            {/* Add more categories as needed */}
+          </select>
           <Button variant="outline">
-            <ArrowDown className="mr-2 h-4 w-4" />
-            Record Entry
-          </Button>
-          <Button>
-            <ArrowUp className="mr-2 h-4 w-4" />
-            Record Exit
+            <Filter size={16} className="mr-2" />
+            Filter
           </Button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sidebar with Stats */}
-        <div className="space-y-6">
-          <WarehouseOverview 
-            products={products} 
-            inventoryMovements={inventoryMovements} 
-          />
-          
-          <LowStockAlert 
-            products={products} 
-            onProductSelect={setSelectedProduct}
-            onViewAllInventory={() => {
-              window.location.href = '/inventory';
-            }}
-          />
-          
-          <AnalyticsCard />
-        </div>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="movements">Movements</TabsTrigger>
+          <TabsTrigger value="shelf">Shelf Mapping</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-4">
+          <WarehouseOverview />
+        </TabsContent>
+        
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnalyticsCard title="Total Products" value="345" icon={Package} />
+            <AnalyticsCard title="Low Stock Items" value="12" icon={AlertTriangle} />
+            <AnalyticsCard title="Inventory Turnover" value="7.2" icon={TrendingUp} />
+            <AnalyticsCard title="Category Distribution" value="65%" icon={BarChart3} />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="inventory" className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredProducts?.map(product => (
+              <Card key={product.id}>
+                <CardHeader>
+                  <CardTitle>{product.name}</CardTitle>
+                  <CardDescription>{product.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>Category: {product.category}</p>
+                  <p>Stock: {product.stock}</p>
+                  <Badge variant="secondary">
+                    {product.status}
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="movements" className="space-y-4">
+          <InventoryMovementsTable />
+        </TabsContent>
+        
+        <TabsContent value="shelf" className="space-y-4">
+          <ShelfMapping />
+        </TabsContent>
+      </Tabs>
 
-        {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Selected Product Detail Card (conditional) */}
-          {selectedProduct && (
-            <ProductDetail 
-              product={selectedProduct} 
-              onClose={() => setSelectedProduct(null)}
-            />
-          )}
-
-          {/* Tabs for Inventory and Movements */}
-          <Tabs 
-            defaultValue="inventory" 
-            value={activeTab} 
-            onValueChange={setActiveTab} 
-            className="w-full"
-          >
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="inventory">Inventory</TabsTrigger>
-              <TabsTrigger value="movements">Movements</TabsTrigger>
-              <TabsTrigger value="shelf-map">Shelf Map</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="inventory" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sortedProducts.map(product => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product}
-                    onSelect={() => setSelectedProduct(product)}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="movements">
-              <InventoryMovementsTable 
-                movements={sortedMovements}
-                getProductById={getProductById}
-              />
-            </TabsContent>
-
-            <TabsContent value="shelf-map">
-              <ShelfMapping 
-                products={products} 
-                onProductSelect={setSelectedProduct}
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+      {/* Low Stock Alerts */}
+      <LowStockAlert />
     </div>
   );
 };
