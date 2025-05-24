@@ -9,9 +9,7 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ElementType;
-  roles: UserRole[]; // Changed from 'allowed' to 'roles' for clarity
-  resource?: string;
-  action?: string;
+  roles: UserRole[];
 }
 
 // Define navigation items with their allowed roles
@@ -20,73 +18,55 @@ export const navigationItems: NavItem[] = [
     name: 'Dashboard', 
     href: '/', 
     icon: LayoutDashboard, 
-    roles: ['admin', 'warehouse', 'analyst'],
-    resource: 'dashboard',
-    action: 'view'
+    roles: ['admin', 'warehouse', 'analyst']
   },
   { 
     name: 'Warehouse', 
     href: '/warehouse', 
     icon: Package, 
-    roles: ['admin', 'warehouse'],
-    resource: 'warehouse',
-    action: 'view'
+    roles: ['admin', 'warehouse']
   },
   { 
     name: 'Store', 
     href: '/store', 
     icon: Store, 
-    roles: ['admin', 'customer', 'analyst', 'warehouse'],
-    resource: 'store',
-    action: 'view'
+    roles: ['admin', 'customer', 'analyst', 'warehouse']
   },
   { 
     name: 'Analytics', 
     href: '/analytics', 
     icon: BarChart3, 
-    roles: ['admin', 'analyst'],
-    resource: 'analytics',
-    action: 'view'
+    roles: ['admin', 'analyst']
   },
   { 
     name: 'Users', 
     href: '/users', 
     icon: Users, 
-    roles: ['admin'],
-    resource: 'users',
-    action: 'view'
+    roles: ['admin']
   },
   { 
     name: 'Shopping Cart', 
     href: '/cart', 
     icon: ShoppingCart, 
-    roles: ['customer', 'admin', 'analyst'],
-    resource: 'cart',
-    action: 'view'
+    roles: ['customer', 'admin']
   },
   { 
     name: 'Returns', 
     href: '/returns', 
     icon: RotateCcw, 
-    roles: ['customer', 'admin', 'analyst'],
-    resource: 'returns',
-    action: 'manage'
+    roles: ['customer', 'admin']
   },
   { 
     name: 'Profile', 
     href: '/profile', 
     icon: User, 
-    roles: ['admin', 'warehouse', 'analyst', 'customer'],
-    resource: 'profile',
-    action: 'view'
+    roles: ['admin', 'warehouse', 'analyst', 'customer']
   },
   { 
     name: 'Settings', 
     href: '/settings', 
     icon: Settings, 
-    roles: ['admin', 'warehouse', 'analyst', 'customer'],
-    resource: 'settings',
-    action: 'view'
+    roles: ['admin', 'warehouse', 'analyst', 'customer']
   },
 ];
 

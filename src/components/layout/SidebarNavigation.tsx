@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types';
 import { getNavigationByRole } from './navigationConfig';
-import { hasPermission } from '@/services/auth/rbacService';
 
 interface NavItemProps {
   name: string;
@@ -37,47 +36,14 @@ interface SidebarNavigationProps {
 
 const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ userRole }) => {
   const location = useLocation();
-  const [authorizedNavItems, setAuthorizedNavItems] = useState<ReturnType<typeof getNavigationByRole>>([]);
   
   // Function to determine if a nav link is active
   const isActive = (path: string) => {
     return location.pathname === path;
   };
   
-  // Get navigation items based on user role and check permissions
-  useEffect(() => {
-    const checkPermissions = async () => {
-      // Get navigation items based on user role
-      const roleBasedItems = getNavigationByRole(userRole);
-      const filteredItems = [];
-      
-      for (const item of roleBasedItems) {
-        // If the item has resource and action properties, check permissions
-        if (item.resource && item.action) {
-          const hasAccess = await hasPermission(item.resource, item.action);
-          if (hasAccess) {
-            filteredItems.push(item);
-          }
-        } 
-        // If no resource/action specified, include by default
-        else {
-          filteredItems.push(item);
-        }
-      }
-      
-      setAuthorizedNavItems(filteredItems);
-    };
-    
-    checkPermissions();
-  }, [userRole]);
-  
-  if (authorizedNavItems.length === 0) {
-    return (
-      <div className="py-4 text-sm text-gray-500 dark:text-gray-400">
-        Loading navigation...
-      </div>
-    );
-  }
+  // Get navigation items based on user role directly
+  const authorizedNavItems = getNavigationByRole(userRole);
   
   return (
     <nav className="space-y-1 mt-4">
