@@ -3,11 +3,9 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-const repoName = "stock2store";
-
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === "production" ? `/${repoName}/` : "/",
+  base: "/stock2store",
   server: {
     host: "::",
     port: 8080,
