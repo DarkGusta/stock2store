@@ -10,18 +10,18 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   
-  // Clean up auth state when loading the login page
+  // Clean up auth state when loading the login page (only if not authenticated)
   useEffect(() => {
     if (!user && !loading) {
-      // If we're on the login page and not logged in, ensure clean auth state
+      console.log("Cleaning up auth state on login page");
       cleanupAuthState();
     }
-  }, []);
+  }, [user, loading]);
 
   // If user is already logged in, redirect to dashboard
   useEffect(() => {
     if (user && !loading) {
-      console.log("User already logged in, redirecting to dashboard");
+      console.log("User already authenticated, redirecting to dashboard");
       navigate('/', { replace: true });
     }
   }, [user, navigate, loading]);
@@ -33,7 +33,7 @@ const Login: React.FC = () => {
 
   // Don't render login page if user is already logged in
   if (user) {
-    return <LoadingSpinner message="You are already logged in. Redirecting to dashboard..." />;
+    return <LoadingSpinner message="Redirecting to dashboard..." />;
   }
 
   return (
