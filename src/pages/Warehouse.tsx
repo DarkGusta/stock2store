@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,15 +13,32 @@ import InventoryMovementsTable from '@/components/warehouse/InventoryMovementsTa
 import ShelfMapping from '@/components/warehouse/ShelfMapping';
 import { getProducts } from '@/services';
 import { useQuery } from '@tanstack/react-query';
+import { Product, InventoryMovement } from '@/types';
 
 const Warehouse = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
 
-  const { data: products, isLoading, error } = useQuery({
+  const { data: products = [], isLoading, error } = useQuery({
     queryKey: ['warehouse-products'],
     queryFn: getProducts,
   });
+
+  // Mock inventory movements for now
+  const inventoryMovements: InventoryMovement[] = [];
+
+  // Mock functions for components
+  const handleProductSelect = (product: Product) => {
+    console.log('Product selected:', product);
+  };
+
+  const handleViewAllInventory = () => {
+    console.log('View all inventory');
+  };
+
+  const getProductById = (id: string) => {
+    return products.find(p => p.id === id);
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -30,7 +48,7 @@ const Warehouse = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  const filteredProducts = products?.filter(product =>
+  const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
     (filterCategory === 'all' || product.category === filterCategory)
   );
@@ -88,7 +106,7 @@ const Warehouse = () => {
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
-          <WarehouseOverview />
+          <WarehouseOverview products={products} inventoryMovements={inventoryMovements} />
         </TabsContent>
         
         <TabsContent value="analytics" className="space-y-4">
@@ -102,7 +120,7 @@ const Warehouse = () => {
         
         <TabsContent value="inventory" className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProducts?.map(product => (
+            {filteredProducts.map(product => (
               <Card key={product.id}>
                 <CardHeader>
                   <CardTitle>{product.name}</CardTitle>
@@ -112,7 +130,7 @@ const Warehouse = () => {
                   <p>Category: {product.category}</p>
                   <p>Stock: {product.stock}</p>
                   <Badge variant="secondary">
-                    {product.status}
+                    Active
                   </Badge>
                 </CardContent>
               </Card>
@@ -121,16 +139,20 @@ const Warehouse = () => {
         </TabsContent>
         
         <TabsContent value="movements" className="space-y-4">
-          <InventoryMovementsTable />
+          <InventoryMovementsTable movements={inventoryMovements} getProductById={getProductById} />
         </TabsContent>
         
         <TabsContent value="shelf" className="space-y-4">
-          <ShelfMapping />
+          <ShelfMapping products={products} onProductSelect={handleProductSelect} />
         </TabsContent>
       </Tabs>
 
       {/* Low Stock Alerts */}
-      <LowStockAlert />
+      <LowStockAlert 
+        products={products} 
+        onProductSelect={handleProductSelect} 
+        onViewAllInventory={handleViewAllInventory} 
+      />
     </div>
   );
 };
