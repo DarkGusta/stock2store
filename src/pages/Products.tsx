@@ -1,10 +1,8 @@
-
-import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Search, Filter, SlidersHorizontal, Download, RefreshCcw, PackageOpen
-} from 'lucide-react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   Select,
   SelectContent,
@@ -13,83 +11,71 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import MainLayout from '@/components/layout/MainLayout';
-import ProductCard from '@/components/products/ProductCard';
-import { useToast } from '@/components/ui/use-toast';
-import { Product } from '@/types';
-import { getProducts } from '@/services'; // Updated import path
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Package, Plus, Search, Filter, Eye, Edit, Trash2 } from 'lucide-react';
+import { getProducts } from '@/services';
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { Product } from '@/types';
 
 const Products = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name-asc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [category, setCategory] = useState('all');
   const { toast } = useToast();
 
-  // Fetch products using React Query
-  const { data: products = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['products'],
-    queryFn: getProducts,
-  });
+  const products = [
+    {
+      id: '1',
+      name: 'Premium T-Shirt',
+      description: 'Comfortable and stylish t-shirt made from high-quality cotton.',
+      category: 'Clothing',
+      price: 29.99,
+      stock: 150,
+      imageUrl: '/examples/card-example.png',
+    },
+    {
+      id: '2',
+      name: 'Wireless Headphones',
+      description: 'Experience immersive sound with these noise-cancelling headphones.',
+      category: 'Electronics',
+      price: 199.99,
+      stock: 75,
+      imageUrl: '/examples/card-example.png',
+    },
+    {
+      id: '3',
+      name: 'Leather Wallet',
+      description: 'A classic leather wallet with multiple card slots and a bill compartment.',
+      category: 'Accessories',
+      price: 49.99,
+      stock: 120,
+      imageUrl: '/examples/card-example.png',
+    },
+  ];
 
-  // Handle errors
-  useEffect(() => {
-    if (error) {
-      console.error('Error in Products page:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products. Please try again later.",
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
+  const categories = ['all', 'Clothing', 'Electronics', 'Accessories'];
 
-  // Get unique categories from products
-  const categories = [...new Set((products as Product[]).map(product => product.category || 'Uncategorized'))];
+  const handleView = (id: string) => {
+    toast({
+      title: "View Product",
+      description: `Viewing product with ID: ${id}`,
+    });
+  };
 
-  // Filter products based on search and category
-  const filteredProducts = (products as Product[]).filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
-
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch(sortBy) {
-      case 'name-asc':
-        return a.name.localeCompare(b.name);
-      case 'name-desc':
-        return b.name.localeCompare(a.name);
-      case 'price-asc':
-        return a.price - b.price;
-      case 'price-desc':
-        return b.price - a.price;
-      case 'stock-asc':
-        return a.stock - b.stock;
-      case 'stock-desc':
-        return b.stock - a.stock;
-      default:
-        return 0;
-    }
-  });
-
-  const handleProductEdit = (id: string) => {
+  const handleEdit = (id: string) => {
     toast({
       title: "Edit Product",
       description: `Editing product with ID: ${id}`,
     });
   };
 
-  const handleProductDelete = (id: string) => {
+  const handleDelete = (id: string) => {
     toast({
       title: "Delete Product",
       description: `Deleting product with ID: ${id}`,
@@ -97,182 +83,104 @@ const Products = () => {
     });
   };
 
-  const handleProductSelect = (product: Product) => {
-    toast({
-      title: "Product Selected",
-      description: `Viewing details for: ${product.name}`,
-    });
-  };
-
-  const handleRefresh = () => {
-    refetch();
-    toast({
-      title: "Refreshing Products",
-      description: "Fetching the latest product data from the database.",
-    });
-  };
+  const filteredProducts = products.filter((product) => {
+    const searchRegex = new RegExp(searchQuery, 'i');
+    return (
+      searchRegex.test(product.name) &&
+      (category === 'all' || product.category === category)
+    );
+  });
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-semibold">Products</h1>
-            <p className="text-gray-500">Manage your product catalog</p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleRefresh} variant="outline">
-              <RefreshCcw size={16} className="mr-2" />
-              Refresh
-            </Button>
-            <Button>
-              <Plus size={16} className="mr-2" />
-              Add Product
-            </Button>
-          </div>
-        </div>
-
-        {/* Filters Bar */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-grow">
-            <Search className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-500" size={18} />
-            <Input
-              placeholder="Search products..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name-asc">Name (A-Z)</SelectItem>
-              <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-              <SelectItem value="price-asc">Price (Low-High)</SelectItem>
-              <SelectItem value="price-desc">Price (High-Low)</SelectItem>
-              <SelectItem value="stock-asc">Stock (Low-High)</SelectItem>
-              <SelectItem value="stock-desc">Stock (High-Low)</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Filter size={16} className="mr-2" /> 
-                More Filters
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <SlidersHorizontal size={16} className="mr-2" />
-                Price Range
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <SlidersHorizontal size={16} className="mr-2" />
-                Stock Status
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button variant="outline" onClick={() => {
-            setSearchTerm('');
-            setCategoryFilter('all');
-            setSortBy('name-asc');
-          }}>
-            <RefreshCcw size={16} className="mr-2" />
-            Reset
-          </Button>
-        </div>
-
-        {/* Product count and export */}
-        <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-500">
-            Showing <span className="font-medium">{sortedProducts.length}</span> products
-          </p>
-          <Button variant="outline" size="sm">
-            <Download size={16} className="mr-2" />
-            Export
-          </Button>
-        </div>
-
-        {/* Products Grid with loading state */}
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p>Loading products...</p>
-          </div>
-        ) : (
-          <>
-            {(products as Product[]).length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
-                  <PackageOpen size={24} className="text-blue-600" />
-                </div>
-                <h3 className="text-lg font-semibold">No products available</h3>
-                <p className="text-gray-500 mt-1">
-                  There are currently no products in the database.
-                </p>
-                <Button 
-                  className="mt-4"
-                >
-                  <Plus size={16} className="mr-2" />
-                  Add Your First Product
-                </Button>
-              </div>
-            ) : sortedProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {sortedProducts.map((product) => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product}
-                    onEdit={handleProductEdit}
-                    onDelete={handleProductDelete}
-                    onSelect={handleProductSelect}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <div className="inline-flex items-center justify-center bg-blue-100 p-3 rounded-full mb-4">
-                  <Search size={24} className="text-blue-600" />
-                </div>
-                <h3 className="text-lg font-semibold">No products found</h3>
-                <p className="text-gray-500 mt-1">
-                  Try adjusting your search or filter to find what you're looking for.
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setCategoryFilter('all');
-                  }}
-                >
-                  Reset filters
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+    <div className="container mx-auto py-10">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Products</h1>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" /> Add Product
+        </Button>
       </div>
-    </MainLayout>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Management</CardTitle>
+          <CardDescription>Manage and organize your products.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <Input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button>
+              <Filter className="mr-2 h-4 w-4" /> Filter
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Products List</CardTitle>
+          <CardDescription>A list of all available products.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Stock</TableHead>
+                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>{product.category}</TableCell>
+                  <TableCell>
+                    {product.stock < 20 ? (
+                      <Badge variant="destructive">Low Stock ({product.stock})</Badge>
+                    ) : (
+                      product.stock
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleView(product.id)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(product.id)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
