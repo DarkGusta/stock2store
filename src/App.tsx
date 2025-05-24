@@ -24,35 +24,35 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={
-              <ProtectedRoute resource="dashboard" action="view">
+              <ProtectedRoute resource="dashboard" action="view" fallbackPath="/login">
                 <MainLayout>
                   <Index />
                 </MainLayout>
               </ProtectedRoute>
             } />
             <Route path="/warehouse" element={
-              <ProtectedRoute resource="warehouse" action="view">
+              <ProtectedRoute resource="warehouse" action="view" fallbackPath="/login">
                 <MainLayout>
                   <Warehouse />
                 </MainLayout>
               </ProtectedRoute>
             } />
             <Route path="/store" element={
-              <ProtectedRoute resource="store" action="view">
+              <ProtectedRoute resource="store" action="view" fallbackPath="/login">
                 <MainLayout>
                   <Store />
                 </MainLayout>
               </ProtectedRoute>
             } />
             <Route path="/analytics" element={
-              <ProtectedRoute resource="analytics" action="view">
+              <ProtectedRoute resource="analytics" action="view" fallbackPath="/login">
                 <MainLayout>
                   <Analytics />
                 </MainLayout>
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
-              <ProtectedRoute resource="profile" action="view">
+              <ProtectedRoute resource="profile" action="view" fallbackPath="/login">
                 <MainLayout>
                   <Profile />
                 </MainLayout>
