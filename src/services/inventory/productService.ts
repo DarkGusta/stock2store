@@ -2,56 +2,45 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
 /**
- * Gets products for inventory management with proper price fetching using JOIN
+ * Gets products for inventory management with proper price fetching
  */
 export const getProducts = async (): Promise<Product[]> => {
   console.log('Fetching products from database...');
   
   try {
-    // Use a more explicit JOIN approach to get inventory with current active prices
-    const { data: inventoryWithPrices, error: inventoryError } = await supabase
+    // First get all inventory items
+    const { data: inventoryData, error: inventoryError } = await supabase
       .from('inventory')
       .select(`
-        id,
-        name,
-        description,
-        quantity,
-        created_at,
-        updated_at,
-        product_type_id,
-        price!inner(
-          amount,
-          status,
-          effective_from
-        )
-      `)
-      .eq('price.status', true);
+        id, 
+        name, 
+        description, 
+        quantity, 
+        created_at, 
+        updated_at, 
+        product_type_id
+      `);
       
     if (inventoryError) {
-      console.error('Error fetching inventory with prices:', inventoryError);
-      
-      // Fallback: try the alternative method if the JOIN fails
-      console.log('Trying alternative method...');
-      return await getProductsAlternative();
+      console.error('Error fetching inventory:', inventoryError);
+      throw inventoryError;
     }
     
-    console.log('Inventory with prices data:', inventoryWithPrices);
+    console.log('Inventory data:', inventoryData);
     
-    if (!inventoryWithPrices || inventoryWithPrices.length === 0) {
-      console.log('No inventory data found with JOIN, trying alternative method...');
-      return await getProductsAlternative();
+    if (!inventoryData || inventoryData.length === 0) {
+      console.log('No inventory data found');
+      return [];
     }
     
     // Get all product types
     const { data: productTypes, error: typesError } = await supabase
       .from('product_types')
-      .select('*');
+      .select('id, name');
       
     if (typesError) {
       console.error('Error fetching product types:', typesError);
     }
-    
-    console.log('Product types:', productTypes);
     
     // Create a map of product types for quick lookup
     const typeMap = new Map();
@@ -61,25 +50,72 @@ export const getProducts = async (): Promise<Product[]> => {
       });
     }
     
-    // Map inventory data to products with joined prices
-    const products = inventoryWithPrices.map((item: any) => {
-      // Get the most recent active price (sort by effective_from if multiple prices exist)
-      let currentPrice = 0;
-      if (Array.isArray(item.price) && item.price.length > 0) {
-        // Sort prices by effective_from to get the most recent
-        const sortedPrices = item.price.sort((a: any, b: any) => 
-          new Date(b.effective_from).getTime() - new Date(a.effective_from).getTime()
-        );
-        currentPrice = sortedPrices[0].amount;
-      }
+    // Get ALL price records first to debug
+    console.log('Fetching ALL price records for debugging...');
+    const { data: allPrices, error: allPricesError } = await supabase
+      .from('price')
+      .select('*');
+    
+    console.log('All price records in database:', allPrices);
+    
+    if (allPricesError) {
+      console.error('Error fetching all prices:', allPricesError);
+    }
+    
+    // Get current active prices for all inventory items
+    const inventoryIds = inventoryData.map(item => item.id);
+    console.log('Fetching prices for inventory IDs:', inventoryIds);
+    
+    const { data: priceData, error: priceError } = await supabase
+      .from('price')
+      .select('inventory_id, amount, effective_from, status')
+      .in('inventory_id', inventoryIds)
+      .eq('status', true);
       
-      console.log(`Product ${item.name} - Price data:`, item.price, 'Current price:', currentPrice);
+    if (priceError) {
+      console.error('Error fetching prices:', priceError);
+    }
+    
+    console.log('Filtered price data fetched:', priceData);
+    
+    // Try without status filter to see if that's the issue
+    const { data: priceDataNoFilter, error: priceErrorNoFilter } = await supabase
+      .from('price')
+      .select('inventory_id, amount, effective_from, status')
+      .in('inventory_id', inventoryIds);
+      
+    console.log('Price data without status filter:', priceDataNoFilter);
+    
+    // Create a map of prices for quick lookup (get the most recent price)
+    const priceMap = new Map();
+    const finalPriceData = priceData && priceData.length > 0 ? priceData : priceDataNoFilter;
+    
+    if (finalPriceData) {
+      // Sort by effective_from to get the most recent price for each inventory item
+      const sortedPrices = finalPriceData.sort((a: any, b: any) => 
+        new Date(b.effective_from).getTime() - new Date(a.effective_from).getTime()
+      );
+      
+      sortedPrices.forEach((price: any) => {
+        if (!priceMap.has(price.inventory_id)) {
+          priceMap.set(price.inventory_id, price.amount);
+          console.log(`Setting price for inventory ${price.inventory_id}: $${price.amount} (status: ${price.status})`);
+        }
+      });
+    }
+    
+    console.log('Price map created:', Array.from(priceMap.entries()));
+    
+    // Map inventory data to products
+    const products = inventoryData.map((item: any) => {
+      const price = priceMap.get(item.id) || 0;
+      console.log(`Product ${item.name} (ID: ${item.id}) - Price: $${price}`);
       
       return {
         id: item.id || '',
         name: item.name || 'Unnamed Product',
         description: item.description || '',
-        price: currentPrice,
+        price: price,
         stock: item.quantity || 0,
         image: '',
         category: typeMap.get(item.product_type_id) || 'Uncategorized',
@@ -90,12 +126,11 @@ export const getProducts = async (): Promise<Product[]> => {
       };
     });
     
-    console.log('Final products with joined prices:', products);
+    console.log('Final products with prices:', products);
     return products;
   } catch (error) {
     console.error('Error in getProducts method:', error);
-    console.log('Falling back to alternative method...');
-    return await getProductsAlternative();
+    throw error;
   }
 };
 
@@ -156,16 +191,15 @@ export const getProductsAlternative = async (): Promise<Product[]> => {
       .from('price')
       .select('inventory_id, amount, effective_from, status')
       .in('inventory_id', inventoryIds)
-      .eq('status', true)
-      .order('effective_from', { ascending: false });
+      .eq('status', true);
       
     if (priceError) {
       console.error('Error fetching prices:', priceError);
     }
     
-    console.log('Price data fetched:', priceData);
+    console.log('Filtered price data fetched:', priceData);
     
-    // Create a map of prices for quick lookup (get the most recent active price)
+    // Create a map of prices for quick lookup (get the most recent price)
     const priceMap = new Map();
     if (priceData) {
       priceData.forEach((price: any) => {
