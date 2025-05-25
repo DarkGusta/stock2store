@@ -11,6 +11,7 @@ import Warehouse from '@/pages/Warehouse';
 import Store from '@/pages/Store';
 import Analytics from '@/pages/Analytics';
 import Profile from '@/pages/Profile';
+import Users from '@/pages/Users';
 import NotFound from '@/pages/NotFound';
 import './App.css';
 
@@ -50,6 +51,13 @@ function App() {
                 <ProtectedRoute resource="analytics" action="view" fallbackPath="/login">
                   <MainLayout>
                     <Analytics />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/users" element={
+                <ProtectedRoute resource="users" action="view" fallbackPath="/login">
+                  <MainLayout>
+                    <Users />
                   </MainLayout>
                 </ProtectedRoute>
               } />
