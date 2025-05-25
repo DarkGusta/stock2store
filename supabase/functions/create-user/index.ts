@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with service role key
+    // Create a Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -27,9 +27,17 @@ serve(async (req) => {
     )
 
     // Verify the request is from an authenticated admin user
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const token = authHeader.replace('Bearer ', '')
     
+    // Create a client with anon key to verify the user's session
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -38,20 +46,22 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('Auth error:', authError)
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Check if user is admin
-    const { data: profile } = await supabaseClient
+    // Check if user is admin using the service role client
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    if (profileError || !profile || profile.role !== 'admin') {
+      console.error('Profile check error:', profileError)
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -60,7 +70,14 @@ serve(async (req) => {
 
     const { name, email, password, role } = await req.json()
 
-    // Create user with admin client
+    if (!name || !email || !password || !role) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: name, email, password, role' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Create user with admin client (service role)
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -69,13 +86,14 @@ serve(async (req) => {
     })
 
     if (createError) {
+      console.error('User creation error:', createError)
       return new Response(
         JSON.stringify({ error: createError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Update the profile with role and other details
+    // Update the profile with role and other details using service role client
     if (newUser.user) {
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
@@ -93,8 +111,12 @@ serve(async (req) => {
       }
     }
 
+    console.log('User created successfully:', newUser.user?.email)
     return new Response(
-      JSON.stringify({ user: newUser.user }),
+      JSON.stringify({ 
+        user: newUser.user,
+        message: 'User created successfully' 
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
