@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +64,7 @@ const Users: React.FC = () => {
     }
   };
 
-  // Create new user
+  // Create new user using Edge Function
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -81,64 +80,55 @@ const Users: React.FC = () => {
     setIsCreating(true);
 
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.password,
-        user_metadata: {
-          name: formData.name
-        },
-        email_confirm: true // Auto-confirm email for admin-created users
-      });
-
-      if (authError) {
-        console.error('Error creating user:', authError);
+      // Get the current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         toast({
-          title: "Error creating user",
-          description: authError.message,
+          title: "Authentication required",
+          description: "Please log in to create users",
           variant: "destructive"
         });
         return;
       }
 
-      if (authData.user) {
-        // Update the profile with role and other details
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            name: formData.name,
-            email: formData.email,
-            role: formData.role,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) {
-          console.error('Error updating profile:', profileError);
-          toast({
-            title: "User created but profile update failed",
-            description: profileError.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "User created successfully",
-            description: `${formData.name} has been added to the system`,
-            variant: "default"
-          });
-
-          // Reset form
-          setFormData({
-            name: '',
-            email: '',
-            password: '',
-            role: 'customer'
-          });
-
-          // Refresh users list
-          fetchUsers();
+      // Call the Edge Function to create the user
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role
         }
+      });
+
+      if (error) {
+        console.error('Error creating user:', error);
+        toast({
+          title: "Error creating user",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
       }
+
+      toast({
+        title: "User created successfully",
+        description: `${formData.name} has been added to the system`,
+        variant: "default"
+      });
+
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        role: 'customer'
+      });
+
+      // Refresh users list
+      fetchUsers();
+
     } catch (error) {
       console.error('Error in handleCreateUser:', error);
       toast({
