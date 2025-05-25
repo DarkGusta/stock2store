@@ -1,10 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-
-// Import directly from authUtils since we removed the service index
-import { fetchCurrentUser } from "../authUtils";
+import { fetchCurrentUser, cleanupAuthState } from "../authUtils";
 
 export interface AuthState {
   user: User | null;
@@ -17,50 +15,77 @@ export function useAuthState(): [
 ] {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const initializingRef = useRef(false);
+  const lastSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
-    console.log("Setting up auth state...");
+    if (initializingRef.current) return;
+    initializingRef.current = true;
     
-    // Set up auth state listener
+    console.log("Initializing auth state...");
+    
+    // Set up auth state listener with improved logic
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event);
+        console.log("Auth state changed:", event, session ? "with session" : "no session");
         
-        if (event === 'SIGNED_OUT') {
+        // Prevent duplicate processing of the same session
+        const sessionKey = session ? `${session.user.id}-${session.access_token.substring(0, 10)}` : null;
+        if (sessionKey === lastSessionRef.current && event !== 'SIGNED_OUT') {
+          console.log("Duplicate session event, skipping...");
+          return;
+        }
+        lastSessionRef.current = sessionKey;
+        
+        if (event === 'SIGNED_OUT' || !session) {
+          console.log("User signed out or no session");
           setUser(null);
           setLoading(false);
+          if (event === 'SIGNED_OUT') {
+            cleanupAuthState();
+          }
           return;
         }
         
-        if (session) {
-          // Use setTimeout to avoid auth deadlocks
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Use setTimeout to prevent auth deadlocks
           setTimeout(async () => {
             try {
-              console.log("Fetching user data after auth state change...");
+              console.log("Processing sign in/token refresh...");
               const currentUser = await fetchCurrentUser();
-              console.log("User data fetched:", currentUser);
+              console.log("User data fetched:", currentUser ? "success" : "failed");
               setUser(currentUser);
             } catch (error) {
               console.error("Error fetching user data:", error);
               setUser(null);
+              cleanupAuthState();
             } finally {
               setLoading(false);
             }
-          }, 0);
+          }, 100);
         }
       }
     );
     
-    // Check for existing session
+    // Check for existing session with timeout
     const checkSession = async () => {
       try {
         console.log("Checking for existing session...");
-        const currentUser = await fetchCurrentUser();
-        console.log("Current user from session check:", currentUser);
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session check timeout')), 5000);
+        });
+        
+        const sessionPromise = fetchCurrentUser();
+        const currentUser = await Promise.race([sessionPromise, timeoutPromise]) as User | null;
+        
+        console.log("Session check result:", currentUser ? "user found" : "no user");
         setUser(currentUser);
       } catch (error) {
         console.error("Error checking session:", error);
         setUser(null);
+        cleanupAuthState();
       } finally {
         setLoading(false);
       }
@@ -69,7 +94,9 @@ export function useAuthState(): [
     checkSession();
     
     return () => {
+      console.log("Cleaning up auth state listener");
       subscription.unsubscribe();
+      initializingRef.current = false;
     };
   }, []);
 
