@@ -92,6 +92,8 @@ const Users: React.FC = () => {
         return;
       }
 
+      console.log('Calling create-user edge function...');
+      
       // Call the Edge Function to create the user
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
@@ -99,18 +101,23 @@ const Users: React.FC = () => {
           email: formData.email,
           password: formData.password,
           role: formData.role
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
       if (error) {
-        console.error('Error creating user:', error);
+        console.error('Edge function error:', error);
         toast({
           title: "Error creating user",
-          description: error.message,
+          description: error.message || 'Failed to create user',
           variant: "destructive"
         });
         return;
       }
+
+      console.log('User creation response:', data);
 
       toast({
         title: "User created successfully",
@@ -133,7 +140,7 @@ const Users: React.FC = () => {
       console.error('Error in handleCreateUser:', error);
       toast({
         title: "Error",
-        description: "Failed to create user",
+        description: "Failed to create user. Please try again.",
         variant: "destructive"
       });
     } finally {
