@@ -62,7 +62,7 @@ const RegistrationForm: React.FC = () => {
         console.log("Registration successful, redirecting to login page");
         
         // Force navigation with page refresh to ensure clean auth state
-        window.location.href = '/login';
+        window.location.href = '/stock2store/login';
       }
     } catch (error) {
       toast({
