@@ -84,7 +84,7 @@ export const signUp = async (email: string, password: string, name: string) => {
           name
         },
         // Explicitly don't automatically sign in after registration
-        emailRedirectTo: window.location.origin + '/login'
+        emailRedirectTo: window.location.origin + '/stock2store/login'
       }
     });
 
@@ -129,16 +129,16 @@ export const signOut = async () => {
     
     console.log("Sign out successful");
     
-    // Force page refresh to ensure clean state
+    // Force page refresh to ensure clean state with correct path
     setTimeout(() => {
-      window.location.href = '/login';
+      window.location.href = '/stock2store/login';
     }, 200);
     
     return { error: null };
   } catch (error) {
     console.error("Unexpected error during sign out:", error);
-    // Force reload anyway to ensure clean state
-    window.location.href = '/login';
+    // Force reload anyway to ensure clean state with correct path
+    window.location.href = '/stock2store/login';
     return { error };
   }
 };
