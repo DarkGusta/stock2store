@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import LoginCard from './login/LoginCard';
@@ -9,6 +9,7 @@ import { cleanupAuthState } from '@/context/auth';
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const hasRedirectedRef = useRef(false);
   
   // Clean up auth state when loading the login page (only if not authenticated)
   useEffect(() => {
@@ -18,24 +19,34 @@ const Login: React.FC = () => {
     }
   }, [user, loading]);
 
-  // Role-based redirect after successful login
+  // Role-based redirect after successful login with protection against infinite loops
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
       console.log(`User authenticated with role: ${user.role}, redirecting...`);
       
       // Define redirect routes based on user role
       const roleRedirects = {
         customer: '/store',
         warehouse: '/warehouse',
-        analyst: '/dashboard', 
-        admin: '/'
+        analyst: '/analytics', 
+        admin: '/dashboard'
       };
 
       const redirectTo = roleRedirects[user.role] || '/store';
       console.log(`Redirecting ${user.role} user to ${redirectTo}`);
+      
+      // Use replace to prevent back button issues
       navigate(redirectTo, { replace: true });
     }
   }, [user, navigate, loading]);
+
+  // Reset redirect flag when user becomes null
+  useEffect(() => {
+    if (!user) {
+      hasRedirectedRef.current = false;
+    }
+  }, [user]);
 
   // If still loading auth state, show loading indicator
   if (loading) {

@@ -7,23 +7,30 @@ import { getUserProfile } from "./userProfileService";
 
 export const signIn = async (email: string, password: string) => {
   try {
+    console.log("Starting sign in process...");
+    
     // Clean up existing auth state to prevent conflicts
     cleanupAuthState();
     
-    // Attempt to sign out any existing sessions
+    // Attempt to sign out any existing sessions globally
     try {
+      console.log("Attempting global sign out before sign in...");
       await supabase.auth.signOut({ scope: 'global' });
+      // Wait a bit for cleanup
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (err) {
-      // Continue even if this fails
       console.log("Pre-auth signout failed, continuing:", err);
     }
     
+    console.log("Attempting to sign in with email/password...");
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (error) {
+      console.error("Sign in error:", error);
+      
       // Check for email confirmation error specifically
       if (error.message.includes("Email not confirmed")) {
         toast({
@@ -41,16 +48,20 @@ export const signIn = async (email: string, password: string) => {
       return { user: null, error };
     }
 
-    // Successfully signed in
-    toast({
-      title: "Login successful",
-      description: `Welcome back!`,
-      variant: "default"
-    });
+    if (data.user) {
+      console.log("Sign in successful, user:", data.user.id);
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+        variant: "default"
+      });
+    }
 
     return { user: data.user, error: null };
   } catch (error) {
     console.error("Unexpected error during sign in:", error);
+    cleanupAuthState();
     toast({
       title: "Login failed",
       description: "An unexpected error occurred",
@@ -104,24 +115,29 @@ export const signUp = async (email: string, password: string, name: string) => {
 
 export const signOut = async () => {
   try {
+    console.log("Starting sign out process...");
+    
     // Clean up auth state first
     cleanupAuthState();
     
     const { error } = await supabase.auth.signOut({ scope: 'global' });
     
     if (error) {
+      console.error("Sign out error:", error);
       return { error };
     }
     
-    // Force reload to ensure clean state after a delay
+    console.log("Sign out successful");
+    
+    // Force page refresh to ensure clean state
     setTimeout(() => {
       window.location.href = '/login';
-    }, 100);
+    }, 200);
     
     return { error: null };
   } catch (error) {
     console.error("Unexpected error during sign out:", error);
-    // Force reload anyway
+    // Force reload anyway to ensure clean state
     window.location.href = '/login';
     return { error };
   }
