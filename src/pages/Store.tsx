@@ -12,16 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Search, Star, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, Search, Star, Plus, Minus, Check } from 'lucide-react';
 import { getProducts } from '@/services/inventory/productService';
 import { useQuery } from '@tanstack/react-query';
 import { Product } from '@/types';
+import { useCart } from '@/context/CartContext';
 
 const Store = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name-asc');
   const { toast } = useToast();
+  const { addToCart, getCartItemQuantity } = useCart();
 
   // Fetch products using React Query with the correct service
   const { data: products = [], isLoading, error } = useQuery({
@@ -74,6 +76,10 @@ const Store = () => {
         return 0;
     }
   });
+
+  const handleAddToCart = (product: Product) => {
+    addToCart(product, 1);
+  };
 
   return (
     <div className="w-full h-full bg-gray-50 dark:bg-gray-900">
@@ -138,42 +144,68 @@ const Store = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {sortedProducts.map(product => (
-              <Card key={product.id} className="bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-lg font-semibold truncate text-gray-900 dark:text-gray-100">{product.name}</CardTitle>
-                  <CardDescription className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2">{product.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-center justify-between mb-3">
-                    <Badge variant="secondary" className="text-xs">{product.category || 'Uncategorized'}</Badge>
-                    <div className="flex items-center space-x-1">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">4.5</span>
+            {sortedProducts.map(product => {
+              const cartQuantity = getCartItemQuantity(product.id);
+              const isInCart = cartQuantity > 0;
+              const isOutOfStock = product.stock <= 0;
+              
+              return (
+                <Card key={product.id} className="bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700">
+                  <CardHeader className="p-4">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg font-semibold truncate text-gray-900 dark:text-gray-100">{product.name}</CardTitle>
+                      {isInCart && (
+                        <Badge variant="secondary" className="ml-2">
+                          {cartQuantity} in cart
+                        </Badge>
+                      )}
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">${product.price}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Stock: {product.stock}</p>
-                  </div>
-                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <Button variant="default" size="sm" className="flex-1 mr-2">
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                    <div className="flex items-center space-x-1">
-                      <Button size="icon" variant="outline" className="h-8 w-8">
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="px-2 text-sm font-medium">1</span>
-                      <Button size="icon" variant="outline" className="h-8 w-8">
-                        <Plus className="h-3 w-3" />
+                    <CardDescription className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2">{product.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge variant="secondary" className="text-xs">{product.category || 'Uncategorized'}</Badge>
+                      <div className="flex items-center space-x-1">
+                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">4.5</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">${product.price}</p>
+                      <div className="flex items-center justify-between">
+                        <p className={`text-sm ${isOutOfStock ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'}`}>
+                          {isOutOfStock ? 'Out of Stock' : `Stock: ${product.stock}`}
+                        </p>
+                        {isOutOfStock && (
+                          <Badge variant="destructive">Unavailable</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <Button 
+                        variant={isInCart ? "secondary" : "default"} 
+                        size="sm" 
+                        className="flex-1 mr-2"
+                        onClick={() => handleAddToCart(product)}
+                        disabled={isOutOfStock}
+                      >
+                        {isInCart ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Added
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add to Cart
+                          </>
+                        )}
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
 
