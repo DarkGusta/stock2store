@@ -26,6 +26,7 @@ const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string 
     { resource: 'dashboard', action: 'view' },
     { resource: 'warehouse', action: 'view' },
     { resource: 'warehouse', action: 'manage' },
+    { resource: 'store', action: 'view' },
     { resource: 'profile', action: 'view' },
     { resource: 'profile', action: 'update' },
     { resource: 'settings', action: 'view' },
@@ -46,10 +47,13 @@ const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string 
   analyst: [
     { resource: 'dashboard', action: 'view' },
     { resource: 'warehouse', action: 'view' },
+    { resource: 'store', action: 'view' },
     { resource: 'analytics', action: 'view' },
     { resource: 'profile', action: 'view' },
     { resource: 'profile', action: 'update' },
-    { resource: 'settings', action: 'view' }
+    { resource: 'settings', action: 'view' },
+    { resource: 'cart', action: 'view' },
+    { resource: 'cart', action: 'update' }
   ]
 };
 
