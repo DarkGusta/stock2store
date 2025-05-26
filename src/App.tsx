@@ -33,14 +33,14 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="/dashboard" element={
-                <ProtectedRoute resource="dashboard" action="view" fallbackPath="/login">
+                <ProtectedRoute resource="dashboard" action="view" fallbackPath="/store">
                   <MainLayout>
                     <Index />
                   </MainLayout>
                 </ProtectedRoute>
               } />
               <Route path="/warehouse" element={
-                <ProtectedRoute resource="warehouse" action="view" fallbackPath="/login">
+                <ProtectedRoute resource="warehouse" action="view" fallbackPath="/store">
                   <MainLayout>
                     <Warehouse />
                   </MainLayout>
@@ -53,22 +53,32 @@ function App() {
                   </MainLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/cart" element={
+                <ProtectedRoute resource="cart" action="view" fallbackPath="/store">
+                  <MainLayout>
+                    <div className="p-8">
+                      <h1 className="text-2xl font-bold">Shopping Cart</h1>
+                      <p className="text-gray-600 mt-4">Your shopping cart will be displayed here.</p>
+                    </div>
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/analytics" element={
-                <ProtectedRoute resource="analytics" action="view" fallbackPath="/login">
+                <ProtectedRoute resource="analytics" action="view" fallbackPath="/store">
                   <MainLayout>
                     <Analytics />
                   </MainLayout>
                 </ProtectedRoute>
               } />
               <Route path="/users" element={
-                <ProtectedRoute resource="users" action="view" fallbackPath="/login">
+                <ProtectedRoute resource="users" action="view" fallbackPath="/store">
                   <MainLayout>
                     <Users />
                   </MainLayout>
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={
-                <ProtectedRoute resource="profile" action="view" fallbackPath="/login">
+                <ProtectedRoute resource="profile" action="view" fallbackPath="/store">
                   <MainLayout>
                     <Profile />
                   </MainLayout>
