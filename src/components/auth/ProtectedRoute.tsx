@@ -38,11 +38,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       try {
         console.log(`Checking permission for ${resource}:${action} for user role: ${user.role}`);
         const allowed = await hasPermission(resource, action);
-        console.log(`Permission result: ${allowed}`);
+        console.log(`Permission result for ${resource}:${action}: ${allowed}`);
         setHasAccess(allowed);
         
         if (!allowed) {
-          console.log(`Access denied for ${resource}:${action}`);
+          console.log(`Access denied for ${resource}:${action}, redirecting to ${fallbackPath}`);
           toast({
             title: "Access denied",
             description: `You don't have permission to access this resource.`,
@@ -57,11 +57,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       }
     };
 
-    // Add a small delay to ensure RBAC system is initialized
-    const timeoutId = setTimeout(checkPermission, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, [user?.id, user?.role, loading, resource, action, toast]);
+    checkPermission();
+  }, [user?.id, user?.role, loading, resource, action, toast, fallbackPath]);
 
   // Show loading state while checking auth or permissions
   if (loading || !permissionChecked) {
@@ -77,7 +74,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Redirect to fallback if not authorized
