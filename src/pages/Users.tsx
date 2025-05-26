@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, Users as UsersIcon, Loader2 } from 'lucide-react';
+import { UserPlus, Users as UsersIcon, Loader2, Trash2 } from 'lucide-react';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -145,6 +146,72 @@ const Users: React.FC = () => {
       });
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Delete user using Edge Function
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingUserId(userId);
+
+    try {
+      // Get the current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to delete users",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Calling delete-user edge function...');
+      
+      // Call the Edge Function to delete the user
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: {
+          userId: userId
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        toast({
+          title: "Error deleting user",
+          description: error.message || 'Failed to delete user',
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('User deletion response:', data);
+
+      toast({
+        title: "User deleted successfully",
+        description: `${userName} has been removed from the system`,
+        variant: "default"
+      });
+
+      // Refresh users list
+      fetchUsers();
+
+    } catch (error) {
+      console.error('Error in handleDeleteUser:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -286,6 +353,7 @@ const Users: React.FC = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Created At</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -301,11 +369,25 @@ const Users: React.FC = () => {
                     <TableCell>
                       {user.createdAt.toLocaleDateString()}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteUser(user.id, user.name)}
+                        disabled={deletingUserId === user.id}
+                      >
+                        {deletingUserId === user.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {users.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
