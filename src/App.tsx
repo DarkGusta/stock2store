@@ -24,8 +24,14 @@ function App() {
         <AuthProvider>
           <Router basename="/stock2store">
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/" element={
+                <ProtectedRoute resource="dashboard" action="view" fallbackPath="/store">
+                  <MainLayout>
+                    <Index />
+                  </MainLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/dashboard" element={
                 <ProtectedRoute resource="dashboard" action="view" fallbackPath="/login">
                   <MainLayout>

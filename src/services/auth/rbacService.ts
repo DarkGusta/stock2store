@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
 
@@ -48,6 +47,7 @@ const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string 
     { resource: 'dashboard', action: 'view' },
     { resource: 'warehouse', action: 'view' },
     { resource: 'store', action: 'view' },
+    { resource: 'store', action: 'purchase' },
     { resource: 'analytics', action: 'view' },
     { resource: 'profile', action: 'view' },
     { resource: 'profile', action: 'update' },
@@ -145,13 +145,16 @@ export const hasPermission = async (resource: string, action: string): Promise<b
     }
 
     const userRole = profile.role as UserRole;
+    console.log(`Checking permission for ${resource}:${action} for role: ${userRole}`);
 
     // Check if RBAC system is initialized
     const rbacInitialized = await isRBACInitialized();
     
     if (!rbacInitialized) {
       console.log('RBAC not initialized, using fallback permissions for role:', userRole);
-      return checkFallbackPermission(userRole, resource, action);
+      const result = checkFallbackPermission(userRole, resource, action);
+      console.log(`Fallback permission result: ${result}`);
+      return result;
     }
 
     // Use the full RBAC system
@@ -167,9 +170,12 @@ export const hasPermission = async (resource: string, action: string): Promise<b
       console.error('Error checking permissions via RPC:', error);
       // Fallback to simple role-based check if RPC fails
       console.log('Falling back to role-based permissions due to RPC error');
-      return checkFallbackPermission(userRole, resource, action);
+      const result = checkFallbackPermission(userRole, resource, action);
+      console.log(`Fallback permission result after RPC error: ${result}`);
+      return result;
     }
 
+    console.log(`RPC permission result: ${Boolean(data)}`);
     return Boolean(data);
   } catch (error) {
     console.error('Error checking user permissions:', error);
@@ -288,6 +294,45 @@ export const initializeRBAC = async (): Promise<boolean> => {
     return false;
   } catch (error) {
     console.error('Error initializing RBAC system:', error);
+    return false;
+  }
+};
+
+/**
+ * Updates a user's role (admin only function)
+ */
+export const updateUserRole = async (userId: string, newRole: UserRole): Promise<boolean> => {
+  try {
+    // Get the current user session to verify admin permissions
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      console.error('No user session found');
+      return false;
+    }
+
+    // Check if current user is admin
+    const isAdmin = await hasRole('admin');
+    if (!isAdmin) {
+      console.error('User is not admin, cannot update roles');
+      return false;
+    }
+
+    // Update the user's role in profiles table
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error updating user role:', updateError);
+      return false;
+    }
+
+    console.log(`Successfully updated user ${userId} role to ${newRole}`);
+    return true;
+  } catch (error) {
+    console.error('Error updating user role:', error);
     return false;
   }
 };

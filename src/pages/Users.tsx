@@ -9,13 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, Users as UsersIcon, Loader2, Trash2 } from 'lucide-react';
+import { updateUserRole } from '@/services/auth/rbacService';
+import { UserPlus, Users as UsersIcon, Loader2, Trash2, Edit } from 'lucide-react';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<UserRole>('customer');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -215,6 +218,41 @@ const Users: React.FC = () => {
     }
   };
 
+  // Handle role update
+  const handleUpdateRole = async (userId: string, newRole: UserRole) => {
+    setEditingUserId(userId);
+
+    try {
+      const success = await updateUserRole(userId, newRole);
+
+      if (success) {
+        toast({
+          title: "Role updated successfully",
+          description: `User role has been changed to ${newRole}`,
+          variant: "default"
+        });
+
+        // Refresh users list
+        fetchUsers();
+      } else {
+        toast({
+          title: "Error updating role",
+          description: "Failed to update user role. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleUpdateRole:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user role. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setEditingUserId(null);
+    }
+  };
+
   const getRoleBadgeVariant = (role: UserRole) => {
     switch (role) {
       case 'admin':
@@ -362,9 +400,26 @@ const Users: React.FC = () => {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {user.role}
+                        </Badge>
+                        <Select
+                          value={user.role}
+                          onValueChange={(newRole: UserRole) => handleUpdateRole(user.id, newRole)}
+                          disabled={editingUserId === user.id}
+                        >
+                          <SelectTrigger className="w-24 h-8">
+                            <Edit className="h-3 w-3" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="customer">Customer</SelectItem>
+                            <SelectItem value="warehouse">Warehouse</SelectItem>
+                            <SelectItem value="analyst">Analyst</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {user.createdAt.toLocaleDateString()}
