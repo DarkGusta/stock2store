@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { hasPermission } from '@/services/auth/rbacService';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -15,24 +16,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Role-based redirect logic
+  // Role-based redirect logic - but only for root path
   useEffect(() => {
     if (!user) return;
 
     const currentPath = location.pathname;
     
-    // Define home pages for each role
-    const roleHomePaths = {
-      customer: '/store',
-      warehouse: '/warehouse', 
-      analyst: '/dashboard',
-      admin: '/'
-    };
+    // Only redirect from root path, don't interfere with other navigation
+    if (currentPath === '/') {
+      const roleHomePaths = {
+        customer: '/store',
+        warehouse: '/warehouse', 
+        analyst: '/analytics',
+        admin: '/dashboard'
+      };
 
-    const userHomeRoute = roleHomePaths[user.role] || '/store';
-
-    // If user is on root path, redirect to their appropriate home
-    if (currentPath === '/' && user.role !== 'admin') {
+      const userHomeRoute = roleHomePaths[user.role] || '/store';
       console.log(`Redirecting ${user.role} user from / to ${userHomeRoute}`);
       navigate(userHomeRoute, { replace: true });
     }
