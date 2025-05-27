@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/auth/AuthProvider';
@@ -27,8 +28,11 @@ function App() {
           <CartProvider>
             <Router basename="/stock2store">
               <Routes>
+                {/* Redirect root to stock2store */}
+                <Route path="/" element={<Navigate to="/stock2store/" replace />} />
+                
                 <Route path="/login" element={<Login />} />
-                <Route path="/" element={
+                <Route path="/stock2store" element={
                   <ProtectedRoute resource="dashboard" action="view" fallbackPath="/store">
                     <MainLayout>
                       <Index />
