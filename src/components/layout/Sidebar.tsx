@@ -22,7 +22,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   // Function to determine home page based on user role
   const getHomeRoute = () => {
-    return user.role === 'customer' ? '/store' : '/';
+    const roleHomePaths = {
+      customer: '/store',
+      warehouse: '/warehouse', 
+      analyst: '/analytics',
+      admin: '/users'
+    };
+    return roleHomePaths[user.role] || '/store';
   };
 
   return (

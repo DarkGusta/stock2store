@@ -7,7 +7,6 @@ import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Login from '@/components/auth/Login';
 import MainLayout from '@/components/layout/MainLayout';
-import Index from '@/pages/Index';
 import Warehouse from '@/pages/Warehouse';
 import Store from '@/pages/Store';
 import Cart from '@/pages/Cart';
@@ -33,16 +32,9 @@ function App() {
                 
                 <Route path="/login" element={<Login />} />
                 <Route path="/stock2store" element={
-                  <ProtectedRoute resource="dashboard" action="view" fallbackPath="/store">
+                  <ProtectedRoute resource="store" action="view" fallbackPath="/login">
                     <MainLayout>
-                      <Index />
-                    </MainLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard" element={
-                  <ProtectedRoute resource="dashboard" action="view" fallbackPath="/store">
-                    <MainLayout>
-                      <Index />
+                      <Store />
                     </MainLayout>
                   </ProtectedRoute>
                 } />
