@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/auth/AuthProvider';
@@ -11,6 +10,7 @@ import Index from '@/pages/Index';
 import Warehouse from '@/pages/Warehouse';
 import Store from '@/pages/Store';
 import Cart from '@/pages/Cart';
+import Checkout from '@/pages/Checkout';
 import Analytics from '@/pages/Analytics';
 import Profile from '@/pages/Profile';
 import Users from '@/pages/Users';
@@ -60,6 +60,13 @@ function App() {
                   <ProtectedRoute resource="cart" action="view" fallbackPath="/store">
                     <MainLayout>
                       <Cart />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/checkout" element={
+                  <ProtectedRoute resource="checkout" action="view" fallbackPath="/store">
+                    <MainLayout>
+                      <Checkout />
                     </MainLayout>
                   </ProtectedRoute>
                 } />
