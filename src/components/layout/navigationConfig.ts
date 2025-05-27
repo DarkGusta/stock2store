@@ -15,12 +15,6 @@ interface NavItem {
 // Define navigation items with their allowed roles
 export const navigationItems: NavItem[] = [
   { 
-    name: 'Dashboard', 
-    href: '/', 
-    icon: LayoutDashboard, 
-    roles: ['admin', 'warehouse', 'analyst']
-  },
-  { 
     name: 'Warehouse', 
     href: '/warehouse', 
     icon: Package, 

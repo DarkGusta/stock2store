@@ -23,16 +23,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const currentPath = location.pathname;
     
     // Only redirect from root path, don't interfere with other navigation
-    if (currentPath === '/') {
+    if (currentPath === '/' || currentPath === '/stock2store') {
       const roleHomePaths = {
         customer: '/store',
         warehouse: '/warehouse', 
         analyst: '/analytics',
-        admin: '/dashboard'
+        admin: '/users'
       };
 
       const userHomeRoute = roleHomePaths[user.role] || '/store';
-      console.log(`Redirecting ${user.role} user from / to ${userHomeRoute}`);
+      console.log(`Redirecting ${user.role} user from ${currentPath} to ${userHomeRoute}`);
       navigate(userHomeRoute, { replace: true });
     }
   }, [user, navigate, location.pathname]);

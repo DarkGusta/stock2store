@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { ArrowLeft, Lock, CreditCard, User, MapPin } from 'lucide-react';
 import InvoiceForm from '@/components/checkout/InvoiceForm';
 import PaymentForm from '@/components/checkout/PaymentForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
+import { processOrder, completeOrder } from '@/services/orders/orderProcessingService';
 
 export interface InvoiceData {
   firstName: string;
@@ -91,12 +91,39 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
-      // Simulate payment processing
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Process the order
+      const orderItems = items.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price
+      }));
+
+      const orderResult = await processOrder({
+        userId: user.id,
+        items: orderItems,
+        invoiceData,
+        paymentData: data
+      });
+
+      if (!orderResult.success) {
+        throw new Error(orderResult.error || 'Failed to process order');
+      }
+
+      // Simulate payment processing delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Here you would typically integrate with a payment processor
-      // For now, we'll just simulate a successful payment
-      
+      // Complete the order (mark as delivered)
+      if (orderResult.orderId) {
+        const completeResult = await completeOrder(orderResult.orderId);
+        if (!completeResult.success) {
+          console.warn('Order created but failed to mark as delivered:', completeResult.error);
+        }
+      }
+
       toast({
         title: "Order placed successfully!",
         description: `Your order has been confirmed. Order total: $${(total * 1.08).toFixed(2)}`,
@@ -105,9 +132,10 @@ const Checkout = () => {
       clearCart();
       navigate('/store');
     } catch (error) {
+      console.error('Payment processing error:', error);
       toast({
         title: "Payment failed",
-        description: "There was an error processing your payment. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your payment. Please try again.",
         variant: "destructive",
       });
     } finally {
