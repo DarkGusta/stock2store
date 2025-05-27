@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 const Cart = () => {
   const { items, total, itemCount, removeFromCart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleCheckout = () => {
     const unavailableItems = items.filter(item => item.status === 'unavailable' || item.product.stock < item.quantity);
@@ -23,8 +26,7 @@ const Cart = () => {
       return;
     }
 
-    // Navigate to checkout page
-    window.location.href = '/checkout';
+    navigate('/checkout');
   };
 
   const getItemStatus = (item: any) => {
@@ -54,7 +56,7 @@ const Cart = () => {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Start shopping to add items to your cart.
             </p>
-            <Button onClick={() => window.location.href = '/store'}>
+            <Button onClick={() => navigate('/store')}>
               Continue Shopping
             </Button>
           </div>
@@ -199,7 +201,7 @@ const Cart = () => {
                   
                   <Button 
                     variant="ghost" 
-                    onClick={() => window.location.href = '/store'} 
+                    onClick={() => navigate('/store')} 
                     className="w-full"
                   >
                     Continue Shopping
