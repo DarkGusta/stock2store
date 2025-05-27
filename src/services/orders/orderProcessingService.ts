@@ -51,10 +51,10 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
     for (const orderItem of orderData.items) {
       console.log(`Processing ${orderItem.quantity} items for product ${orderItem.productId}`);
       
-      // Get available items for this inventory (in incremental order)
+      // Get available items for this product (join items with inventory to find correct items)
       const { data: availableItems, error: itemsError } = await supabase
         .from('items')
-        .select('serial_id')
+        .select('serial_id, inventory_id')
         .eq('inventory_id', orderItem.productId)
         .eq('status', 'available')
         .order('serial_id', { ascending: true })
