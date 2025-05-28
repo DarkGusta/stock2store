@@ -14,6 +14,7 @@ import Checkout from '@/pages/Checkout';
 import Analytics from '@/pages/Analytics';
 import Profile from '@/pages/Profile';
 import Users from '@/pages/Users';
+import Orders from '@/pages/Orders';
 import Returns from '@/pages/Returns';
 import NotFound from '@/pages/NotFound';
 import './App.css';
@@ -83,6 +84,14 @@ function App() {
                   <ProtectedRoute resource="users" action="view" fallbackPath="/store">
                     <MainLayout>
                       <Users />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/orders" element={
+                  <ProtectedRoute resource="orders" action="view" fallbackPath="/store">
+                    <MainLayout>
+                      <Orders />
                     </MainLayout>
                   </ProtectedRoute>
                 } />
