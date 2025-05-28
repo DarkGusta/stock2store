@@ -30,7 +30,7 @@ const Login: React.FC = () => {
         customer: '/store',
         warehouse: '/warehouse',
         analyst: '/analytics', 
-        admin: '/dashboard'
+        admin: '/users'
       };
 
       const redirectTo = roleRedirects[user.role] || '/store';
