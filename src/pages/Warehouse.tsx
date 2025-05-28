@@ -10,6 +10,7 @@ import WarehouseOverview from '@/components/warehouse/WarehouseOverview';
 import LowStockAlert from '@/components/warehouse/LowStockAlert';
 import InventoryMovementsTable from '@/components/warehouse/InventoryMovementsTable';
 import ShelfMapping from '@/components/warehouse/ShelfMapping';
+import RefundRequestsTab from '@/components/warehouse/RefundRequestsTab';
 import { getProducts } from '@/services';
 import { useQuery } from '@tanstack/react-query';
 import { Product, InventoryMovement } from '@/types';
@@ -101,6 +102,7 @@ const Warehouse = () => {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="movements">Movements</TabsTrigger>
+          <TabsTrigger value="refunds">Refund Requests</TabsTrigger>
           <TabsTrigger value="shelf">Shelf Mapping</TabsTrigger>
         </TabsList>
         
@@ -173,6 +175,10 @@ const Warehouse = () => {
         
         <TabsContent value="movements" className="space-y-4">
           <InventoryMovementsTable movements={inventoryMovements} getProductById={getProductById} />
+        </TabsContent>
+        
+        <TabsContent value="refunds" className="space-y-4">
+          <RefundRequestsTab />
         </TabsContent>
         
         <TabsContent value="shelf" className="space-y-4">
