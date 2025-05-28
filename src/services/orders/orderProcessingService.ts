@@ -64,7 +64,7 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
       }
       
       console.log('Inventory check:', inventoryCheck);
-      
+
       // Get available items for this product (must match inventory_id with the product ID)
       const { data: availableItems, error: itemsError } = await supabase
         .from('items')
@@ -136,7 +136,7 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
   try {
     const { error } = await supabase
       .from('orders')
-      .update({ status: 'delivered' })
+      .update({ status: 'completed' })
       .eq('id', orderId);
     
     if (error) {
