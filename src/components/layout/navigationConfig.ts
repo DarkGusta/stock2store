@@ -1,7 +1,7 @@
 
 import {
   LayoutDashboard, Package, Store, BarChart3, 
-  Users, Settings, User, ShoppingCart, RotateCcw
+  Users, Settings, User, ShoppingCart, RotateCcw, ListOrdered
 } from 'lucide-react';
 import { UserRole } from '@/types';
 
@@ -42,6 +42,12 @@ export const navigationItems: NavItem[] = [
     name: 'Shopping Cart', 
     href: '/cart', 
     icon: ShoppingCart, 
+    roles: ['customer', 'admin']
+  },
+  { 
+    name: 'Orders', 
+    href: '/orders', 
+    icon: ListOrdered, 
     roles: ['customer', 'admin']
   },
   { 
