@@ -51,7 +51,21 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
     for (const orderItem of orderData.items) {
       console.log(`Processing ${orderItem.quantity} items for product ${orderItem.productId}`);
       
-      // Get available items for this product (join items with inventory to find correct items)
+      // First verify the inventory exists and has enough stock
+      const { data: inventoryCheck, error: inventoryError } = await supabase
+        .from('inventory')
+        .select('id, name, quantity')
+        .eq('id', orderItem.productId)
+        .single();
+      
+      if (inventoryError) {
+        console.error('Error checking inventory:', inventoryError);
+        throw new Error(`Product ${orderItem.productId} not found`);
+      }
+      
+      console.log('Inventory check:', inventoryCheck);
+      
+      // Get available items for this product (must match inventory_id with the product ID)
       const { data: availableItems, error: itemsError } = await supabase
         .from('items')
         .select('serial_id, inventory_id')
@@ -65,8 +79,10 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw itemsError;
       }
       
+      console.log(`Found ${availableItems?.length || 0} available items for product ${orderItem.productId}`);
+      
       if (!availableItems || availableItems.length < orderItem.quantity) {
-        throw new Error(`Insufficient stock for product ${orderItem.productId}. Available: ${availableItems?.length || 0}, Required: ${orderItem.quantity}`);
+        throw new Error(`Insufficient stock for product ${inventoryCheck.name}. Available: ${availableItems?.length || 0}, Required: ${orderItem.quantity}`);
       }
       
       console.log('Available items to mark as sold:', availableItems);
@@ -82,6 +98,8 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         console.error('Error updating item status:', updateError);
         throw updateError;
       }
+      
+      console.log(`Successfully marked ${serialIds.length} items as sold:`, serialIds);
       
       // Create order_items records
       const orderItemsData = availableItems.map(item => ({
