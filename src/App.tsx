@@ -14,6 +14,7 @@ import Checkout from '@/pages/Checkout';
 import Analytics from '@/pages/Analytics';
 import Profile from '@/pages/Profile';
 import Users from '@/pages/Users';
+import Returns from '@/pages/Returns';
 import NotFound from '@/pages/NotFound';
 import './App.css';
 
@@ -27,17 +28,17 @@ function App() {
           <CartProvider>
             <Router basename="/stock2store">
               <Routes>
-                {/* Redirect root to stock2store */}
-                <Route path="/" element={<Navigate to="/stock2store/" replace />} />
-                
-                <Route path="/login" element={<Login />} />
-                <Route path="/stock2store" element={
+                {/* Root route redirects to login or appropriate role page */}
+                <Route path="/" element={
                   <ProtectedRoute resource="store" action="view" fallbackPath="/login">
                     <MainLayout>
                       <Store />
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
+                <Route path="/login" element={<Login />} />
+                
                 <Route path="/warehouse" element={
                   <ProtectedRoute resource="warehouse" action="view" fallbackPath="/store">
                     <MainLayout>
@@ -45,6 +46,7 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
                 <Route path="/store" element={
                   <ProtectedRoute resource="store" action="view" fallbackPath="/login">
                     <MainLayout>
@@ -52,6 +54,7 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
                 <Route path="/cart" element={
                   <ProtectedRoute resource="cart" action="view" fallbackPath="/store">
                     <MainLayout>
@@ -59,6 +62,7 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
                 <Route path="/checkout" element={
                   <ProtectedRoute resource="checkout" action="view" fallbackPath="/store">
                     <MainLayout>
@@ -66,6 +70,7 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
                 <Route path="/analytics" element={
                   <ProtectedRoute resource="analytics" action="view" fallbackPath="/store">
                     <MainLayout>
@@ -73,6 +78,7 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
                 <Route path="/users" element={
                   <ProtectedRoute resource="users" action="view" fallbackPath="/store">
                     <MainLayout>
@@ -80,6 +86,15 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
+                <Route path="/returns" element={
+                  <ProtectedRoute resource="returns" action="view" fallbackPath="/store">
+                    <MainLayout>
+                      <Returns />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                
                 <Route path="/profile" element={
                   <ProtectedRoute resource="profile" action="view" fallbackPath="/store">
                     <MainLayout>
@@ -87,6 +102,7 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Router>

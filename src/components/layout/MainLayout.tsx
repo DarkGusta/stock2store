@@ -16,14 +16,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Role-based redirect logic - but only for root path
+  // Role-based redirect logic - only for root path
   useEffect(() => {
     if (!user) return;
 
     const currentPath = location.pathname;
     
     // Only redirect from root path, don't interfere with other navigation
-    if (currentPath === '/' || currentPath === '/stock2store') {
+    if (currentPath === '/' || currentPath === '/stock2store' || currentPath === '/stock2store/') {
       const roleHomePaths = {
         customer: '/store',
         warehouse: '/warehouse', 
