@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, ExternalLink } from 'lucide-react';
@@ -69,11 +68,9 @@ const LowStockAlert: React.FC<LowStockAlertProps> = ({
               <p className="text-xs text-gray-500">
                 {lowStockProducts.length > 5 && `+${lowStockProducts.length - 5} more items`}
               </p>
-              <Link to="/inventory">
-                <Button variant="ghost" size="sm" className="text-xs">
-                  View All <ExternalLink size={14} className="ml-1" />
-                </Button>
-              </Link>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={onViewAllInventory}>
+                View All <ExternalLink size={14} className="ml-1" />
+              </Button>
             </div>
           </>
         ) : (

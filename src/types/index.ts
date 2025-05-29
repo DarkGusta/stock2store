@@ -45,6 +45,8 @@ export interface InventoryMovement {
   timestamp: Date;
   userId: string;
   userName: string;
+  serialId?: string;  // Added for tracking individual items
+  orderNumber?: string;  // Added for linking to orders
 }
 
 export interface Order {

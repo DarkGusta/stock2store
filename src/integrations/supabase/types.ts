@@ -585,6 +585,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+      is_admin_or_warehouse: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       user_has_permission: {
         Args: { user_id: string; req_resource: string; req_action: string }
         Returns: boolean
