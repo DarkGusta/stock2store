@@ -1,35 +1,24 @@
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { AlertCircle, CheckCircle, XCircle, Clock, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { processRefund } from '@/services/orders/orderProcessingService';
 
 interface RefundRequest {
   id: string;
   order_id: string;
   user_id: string;
   description: string;
-  photo_url: string | null;
   status: 'pending' | 'approved' | 'rejected';
-  admin_notes: string | null;
-  reviewed_by: string | null;
-  reviewed_at: string | null;
+  photo_url?: string;
   created_at: string;
+  admin_notes?: string;
   orders: {
     order_number: string;
     total_amount: number;
@@ -40,14 +29,13 @@ interface RefundRequest {
   };
 }
 
-const RefundRequestsTab: React.FC = () => {
+const RefundRequestsTab = () => {
+  const [adminNotes, setAdminNotes] = useState<{ [key: string]: string }>({});
+  const [processingRefund, setProcessingRefund] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedRequest, setSelectedRequest] = useState<RefundRequest | null>(null);
-  const [adminNotes, setAdminNotes] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  const { data: refundRequests, isLoading } = useQuery({
+  const { data: refundRequests = [], isLoading } = useQuery({
     queryKey: ['refund-requests'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -58,7 +46,7 @@ const RefundRequestsTab: React.FC = () => {
             order_number,
             total_amount
           ),
-          profiles!refund_requests_user_id_fkey (
+          profiles (
             name,
             email
           )
@@ -70,287 +58,229 @@ const RefundRequestsTab: React.FC = () => {
     },
   });
 
-  const processRefundMutation = useMutation({
-    mutationFn: async ({ 
-      requestId, 
-      action, 
-      notes 
-    }: { 
-      requestId: string; 
-      action: 'approved' | 'rejected'; 
-      notes: string;
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+  const handleStatusUpdate = async (requestId: string, newStatus: 'approved' | 'rejected', orderId?: string) => {
+    try {
+      if (newStatus === 'approved') {
+        setProcessingRefund(requestId);
+      }
 
-      // Update refund request
-      const { error: updateError } = await supabase
+      // Get current user for admin notes
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Update refund request status
+      const { error } = await supabase
         .from('refund_requests')
         .update({
-          status: action,
-          admin_notes: notes,
+          status: newStatus,
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
+          admin_notes: adminNotes[requestId] || null
         })
         .eq('id', requestId);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-      // If approved, update order status and items
-      if (action === 'approved') {
-        const request = refundRequests?.find(r => r.id === requestId);
-        if (!request) throw new Error('Refund request not found');
-
-        // Update order status to refunded
-        const { error: orderError } = await supabase
-          .from('orders')
-          .update({ status: 'refunded' })
-          .eq('id', request.order_id);
-
-        if (orderError) throw orderError;
-
-        // Get order items and update their status to in_repair
-        const { data: orderItems, error: itemsError } = await supabase
-          .from('order_items')
-          .select('item_serial')
-          .eq('order_id', request.order_id);
-
-        if (itemsError) throw itemsError;
-
-        if (orderItems && orderItems.length > 0) {
-          const serialIds = orderItems.map(item => item.item_serial);
-          
-          const { error: itemStatusError } = await supabase
-            .from('items')
-            .update({ status: 'in_repair' })
-            .in('serial_id', serialIds);
-
-          if (itemStatusError) throw itemStatusError;
+      // If approved and orderId exists, process the refund
+      if (newStatus === 'approved' && orderId) {
+        const refundResult = await processRefund(orderId, user.id);
+        if (!refundResult.success) {
+          throw new Error(refundResult.error || 'Failed to process refund');
         }
       }
 
-      return { requestId, action };
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Refund request processed",
-        description: `Refund request has been ${data.action}.`,
-      });
+      // Refresh the data
       queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
-      setSelectedRequest(null);
-      setAdminNotes('');
-    },
-    onError: (error) => {
-      console.error('Error processing refund request:', error);
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-products'] });
+
       toast({
-        title: "Error",
-        description: "Failed to process refund request. Please try again.",
-        variant: "destructive",
+        title: 'Success',
+        description: `Refund request ${newStatus} successfully${newStatus === 'approved' ? ' and items marked for repair' : ''}`,
       });
-    },
-  });
 
-  const handleProcessRefund = async (action: 'approved' | 'rejected') => {
-    if (!selectedRequest) return;
+      // Clear admin notes for this request
+      setAdminNotes(prev => {
+        const updated = { ...prev };
+        delete updated[requestId];
+        return updated;
+      });
 
-    if (action === 'rejected' && !adminNotes.trim()) {
+    } catch (error) {
+      console.error('Error updating refund request:', error);
       toast({
-        title: "Admin notes required",
-        description: "Please provide a reason for rejecting the refund request.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await processRefundMutation.mutateAsync({
-        requestId: selectedRequest.id,
-        action,
-        notes: adminNotes.trim(),
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update refund request',
+        variant: 'destructive',
       });
     } finally {
-      setIsProcessing(false);
+      setProcessingRefund(null);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'approved':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Approved</Badge>;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'rejected':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        <span className="ml-3">Loading refund requests...</span>
-      </div>
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <span className="ml-3">Loading refund requests...</span>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Refund Requests</h3>
-        <p className="text-muted-foreground">
-          Review and process customer refund requests
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Refund Requests Management
+          </CardTitle>
+          <CardDescription>Review and process customer refund requests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {refundRequests.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No refund requests found.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {refundRequests.map((request) => (
+                <Card key={request.id} className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(request.status)}>
+                            {getStatusIcon(request.status)}
+                            <span className="ml-1 capitalize">{request.status}</span>
+                          </Badge>
+                          <span className="text-sm text-gray-500">
+                            Order #{request.orders.order_number}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold">
+                          Refund Request from {request.profiles.name}
+                        </h3>
+                        <p className="text-sm text-gray-600">{request.profiles.email}</p>
+                        <p className="text-sm">
+                          <strong>Amount:</strong> ${request.orders.total_amount}
+                        </p>
+                        <p className="text-sm">
+                          <strong>Submitted:</strong> {new Date(request.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
 
-      {!refundRequests || refundRequests.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Refund Requests</CardTitle>
-            <CardDescription>
-              There are currently no refund requests to review.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {refundRequests.map((request) => (
-            <Card key={request.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">
-                      Order #{request.orders.order_number}
-                    </CardTitle>
-                    <CardDescription>
-                      Customer: {request.profiles.name} ({request.profiles.email})<br />
-                      Amount: ${request.orders.total_amount.toFixed(2)}<br />
-                      Submitted: {format(new Date(request.created_at), 'PPP')}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(request.status)}
-                    <Dialog 
-                      open={selectedRequest?.id === request.id} 
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          setSelectedRequest(null);
-                          setAdminNotes('');
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedRequest(request)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Review
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>
-                            Refund Request - Order #{request.orders.order_number}
-                          </DialogTitle>
-                          <DialogDescription>
-                            Review the refund request details and make a decision.
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-sm font-medium">Customer Description:</Label>
-                            <p className="mt-1 text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                              {request.description}
-                            </p>
-                          </div>
+                    <div className="mb-4">
+                      <h4 className="font-medium mb-2">Customer Description:</h4>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                        {request.description}
+                      </p>
+                    </div>
 
-                          {request.photo_url && (
-                            <div>
-                              <Label className="text-sm font-medium">Photo Evidence:</Label>
-                              <div className="mt-2">
-                                <img
-                                  src={request.photo_url}
-                                  alt="Refund evidence"
-                                  className="max-w-full h-64 object-cover rounded-lg border"
-                                />
-                              </div>
-                            </div>
-                          )}
+                    {request.photo_url && (
+                      <div className="mb-4">
+                        <h4 className="font-medium mb-2">Attached Photo:</h4>
+                        <img
+                          src={request.photo_url}
+                          alt="Refund request"
+                          className="max-w-xs rounded border"
+                        />
+                      </div>
+                    )}
 
-                          {request.status === 'pending' && (
-                            <div>
-                              <Label htmlFor="admin-notes" className="text-sm font-medium">
-                                Admin Notes:
-                              </Label>
-                              <Textarea
-                                id="admin-notes"
-                                placeholder="Add notes about your decision (required for rejections)..."
-                                value={adminNotes}
-                                onChange={(e) => setAdminNotes(e.target.value)}
-                                className="mt-1"
-                              />
-                            </div>
-                          )}
+                    {request.admin_notes && (
+                      <div className="mb-4">
+                        <h4 className="font-medium mb-2">Admin Notes:</h4>
+                        <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded">
+                          {request.admin_notes}
+                        </p>
+                      </div>
+                    )}
 
-                          {request.admin_notes && (
-                            <div>
-                              <Label className="text-sm font-medium">Previous Admin Notes:</Label>
-                              <p className="mt-1 text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                                {request.admin_notes}
-                              </p>
-                            </div>
-                          )}
-
-                          {request.status === 'pending' && (
-                            <div className="flex gap-2 pt-4 border-t">
-                              <Button
-                                onClick={() => handleProcessRefund('approved')}
-                                disabled={isProcessing}
-                                className="flex-1"
-                              >
+                    {request.status === 'pending' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            Admin Notes (Optional):
+                          </label>
+                          <Textarea
+                            placeholder="Add any notes about this refund decision..."
+                            value={adminNotes[request.id] || ''}
+                            onChange={(e) =>
+                              setAdminNotes(prev => ({
+                                ...prev,
+                                [request.id]: e.target.value
+                              }))
+                            }
+                            className="min-h-20"
+                          />
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => handleStatusUpdate(request.id, 'approved', request.order_id)}
+                            className="bg-green-600 hover:bg-green-700"
+                            disabled={processingRefund === request.id}
+                          >
+                            {processingRefund === request.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                                Processing...
+                              </>
+                            ) : (
+                              <>
                                 <CheckCircle className="h-4 w-4 mr-2" />
                                 Approve Refund
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                onClick={() => handleProcessRefund('rejected')}
-                                disabled={isProcessing}
-                                className="flex-1"
-                              >
-                                <XCircle className="h-4 w-4 mr-2" />
-                                Reject Refund
-                              </Button>
-                            </div>
-                          )}
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => handleStatusUpdate(request.id, 'rejected')}
+                            variant="destructive"
+                            disabled={processingRefund === request.id}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Reject Refund
+                          </Button>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {request.description}
-                </p>
-                {request.admin_notes && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                    <div className="flex items-center gap-1 text-blue-700 font-medium">
-                      <MessageSquare className="h-3 w-3" />
-                      Admin Response:
-                    </div>
-                    <p className="text-blue-600 mt-1">{request.admin_notes}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
