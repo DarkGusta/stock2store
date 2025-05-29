@@ -117,6 +117,25 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw orderItemsError;
       }
       
+      // Create transaction records for each sold item
+      const transactionData = availableItems.map(item => ({
+        item_serial: item.serial_id,
+        user_id: orderData.userId,
+        transaction_type: 'sale',
+        order_id: order.id,
+        notes: `Item sold through order ${orderNumber}`
+      }));
+      
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert(transactionData);
+      
+      if (transactionError) {
+        console.error('Error creating transaction records:', transactionError);
+        throw transactionError;
+      }
+      
+      console.log(`Successfully created ${transactionData.length} transaction records for sold items`);
       console.log(`Successfully processed ${orderItem.quantity} items for product ${orderItem.productId}`);
     }
     
@@ -149,6 +168,68 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
     
   } catch (error) {
     console.error('Error completing order:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
+  }
+};
+
+/**
+ * Processes a refund by marking items as in_repair and creating transaction records
+ */
+export const processRefund = async (orderId: string, adminUserId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log('Processing refund for order:', orderId);
+    
+    // Get all items from the order
+    const { data: orderItems, error: orderItemsError } = await supabase
+      .from('order_items')
+      .select('item_serial')
+      .eq('order_id', orderId);
+    
+    if (orderItemsError) {
+      console.error('Error fetching order items:', orderItemsError);
+      throw orderItemsError;
+    }
+    
+    if (!orderItems || orderItems.length === 0) {
+      throw new Error('No items found for this order');
+    }
+    
+    const serialIds = orderItems.map(item => item.item_serial);
+    
+    // Update item status to in_repair
+    const { error: updateError } = await supabase
+      .from('items')
+      .update({ status: 'in_repair' })
+      .in('serial_id', serialIds);
+    
+    if (updateError) {
+      console.error('Error updating item status to in_repair:', updateError);
+      throw updateError;
+    }
+    
+    // Create transaction records for refund
+    const transactionData = serialIds.map(serialId => ({
+      item_serial: serialId,
+      user_id: adminUserId,
+      transaction_type: 'refund',
+      order_id: orderId,
+      notes: 'Item returned due to approved refund request'
+    }));
+    
+    const { error: transactionError } = await supabase
+      .from('transactions')
+      .insert(transactionData);
+    
+    if (transactionError) {
+      console.error('Error creating refund transaction records:', transactionError);
+      throw transactionError;
+    }
+    
+    console.log(`Successfully processed refund for ${serialIds.length} items`);
+    return { success: true };
+    
+  } catch (error) {
+    console.error('Error processing refund:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
   }
 };
