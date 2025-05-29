@@ -91,7 +91,7 @@ const Orders = () => {
         return 'bg-blue-100 text-blue-800';
       case 'shipped':
         return 'bg-purple-100 text-purple-800';
-      case 'delivered':
+      case 'completed':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
@@ -113,7 +113,7 @@ const Orders = () => {
   };
 
   const canRequestRefund = (order: OrderWithItems) => {
-    return order.status === 'delivered' && order.refund_requests.length === 0;
+    return order.status === 'completed' && order.refund_requests.length === 0;
   };
 
   const handleRefundSuccess = () => {

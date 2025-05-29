@@ -130,7 +130,7 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
 };
 
 /**
- * Completes an order by changing its status to delivered
+ * Completes an order by changing its status to completed
  */
 export const completeOrder = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
   try {

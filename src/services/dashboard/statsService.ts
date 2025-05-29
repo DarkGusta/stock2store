@@ -46,11 +46,11 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       console.error('Error fetching pending orders:', ordersError);
     }
     
-    // Get total sales from delivered orders
+    // Get total sales from completed orders
     const { data: salesData, error: salesError } = await supabase
       .from('orders')
       .select('total_amount')
-      .eq('status', 'delivered');
+      .eq('status', 'completed');
     
     if (salesError) {
       console.error('Error fetching sales data:', salesError);
