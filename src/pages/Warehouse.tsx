@@ -13,27 +13,72 @@ import ShelfMapping from '@/components/warehouse/ShelfMapping';
 import RefundRequestsTab from '@/components/warehouse/RefundRequestsTab';
 import { getProducts } from '@/services';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Product, InventoryMovement } from '@/types';
 
 const Warehouse = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [activeTab, setActiveTab] = useState('overview');
 
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ['warehouse-products'],
     queryFn: getProducts,
   });
 
-  // Mock inventory movements for now
-  const inventoryMovements: InventoryMovement[] = [];
+  // Fetch inventory movements (transactions)
+  const { data: inventoryMovements = [] } = useQuery({
+    queryKey: ['inventory-movements'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          items!inner (
+            serial_id,
+            inventory (
+              name,
+              id
+            )
+          ),
+          profiles!transactions_user_id_fkey (
+            name,
+            email
+          ),
+          orders (
+            order_number
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-  // Mock functions for components
+      if (error) throw error;
+
+      return data.map((transaction: any) => ({
+        id: transaction.id,
+        productId: transaction.items.inventory.id,
+        productName: transaction.items.inventory.name,
+        quantity: 1, // Each transaction is for one item
+        type: transaction.transaction_type === 'sale' ? 'out' : 'in',
+        reason: transaction.notes || transaction.transaction_type,
+        performedBy: transaction.profiles?.name || 'System',
+        timestamp: new Date(transaction.created_at),
+        userId: transaction.user_id,
+        userName: transaction.profiles?.name || 'Unknown',
+        serialId: transaction.item_serial,
+        orderNumber: transaction.orders?.order_number
+      })) as InventoryMovement[];
+    },
+  });
+
+  // Get unique categories from products
+  const categories = [...new Set(products.map(p => p.category))];
+
   const handleProductSelect = (product: Product) => {
     console.log('Product selected:', product);
   };
 
   const handleViewAllInventory = () => {
-    console.log('View all inventory');
+    setActiveTab('inventory');
   };
 
   const getProductById = (id: string) => {
@@ -41,11 +86,22 @@ const Warehouse = () => {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <span className="ml-3">Loading warehouse data...</span>
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error.message}</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-red-600">
+          Error loading warehouse data: {error.message}
+        </div>
+      </div>
+    );
   }
 
   const filteredProducts = products.filter(product =>
@@ -84,9 +140,9 @@ const Warehouse = () => {
             onChange={(e) => setFilterCategory(e.target.value)}
           >
             <option value="all">All Categories</option>
-            <option value="electronics">Electronics</option>
-            <option value="clothing">Clothing</option>
-            {/* Add more categories as needed */}
+            {categories.map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
           </select>
           <Button variant="outline">
             <Filter size={16} className="mr-2" />
@@ -96,7 +152,7 @@ const Warehouse = () => {
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -132,11 +188,11 @@ const Warehouse = () => {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Inventory Turnover</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Stock</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">7.2</div>
+                <div className="text-2xl font-bold">{products.reduce((sum, p) => sum + p.stock, 0)}</div>
               </CardContent>
             </Card>
             <Card>
@@ -145,9 +201,7 @@ const Warehouse = () => {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {[...new Set(products.map(p => p.category))].length}
-                </div>
+                <div className="text-2xl font-bold">{categories.length}</div>
               </CardContent>
             </Card>
           </div>
@@ -164,8 +218,9 @@ const Warehouse = () => {
                 <CardContent>
                   <p>Category: {product.category}</p>
                   <p>Stock: {product.stock}</p>
-                  <Badge variant="secondary">
-                    Active
+                  <p>Location: {product.location || 'A1-01'}</p>
+                  <Badge variant={product.stock > 5 ? "default" : "destructive"}>
+                    {product.stock > 5 ? 'In Stock' : 'Low Stock'}
                   </Badge>
                 </CardContent>
               </Card>
