@@ -58,7 +58,7 @@ const RefundRequestsTab: React.FC = () => {
             order_number,
             total_amount
           ),
-          profiles (
+          profiles!refund_requests_user_id_fkey (
             name,
             email
           )
