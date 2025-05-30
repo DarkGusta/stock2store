@@ -96,6 +96,10 @@ const ItemStatusManager = () => {
     }
   };
 
+  const canChangeStatus = (status: string) => {
+    return status !== 'sold';
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -116,7 +120,7 @@ const ItemStatusManager = () => {
             Item Status Management
           </CardTitle>
           <CardDescription>
-            View and update individual item statuses. Items marked as damaged can be repaired or made unavailable.
+            View and update individual item statuses. Items marked as sold cannot be changed.
           </CardDescription>
           <Button onClick={() => refetch()} variant="outline" size="sm" className="w-fit">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -161,9 +165,12 @@ const ItemStatusManager = () => {
                               <Badge className={`ml-2 ${getStatusColor(item.status)}`}>
                                 {item.status}
                               </Badge>
+                              {item.status === 'sold' && (
+                                <span className="ml-2 text-xs text-gray-500">(Cannot be changed)</span>
+                              )}
                             </div>
                             
-                            {(item.status === 'damaged' || item.status === 'in_repair' || item.status === 'unavailable') && (
+                            {canChangeStatus(item.status) && (
                               <div className="flex items-center gap-2">
                                 <Select
                                   value={statusChanges[item.serial_id] || ''}

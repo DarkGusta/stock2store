@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import InventoryMovementsTable from '@/components/warehouse/InventoryMovementsTa
 import ShelfMapping from '@/components/warehouse/ShelfMapping';
 import RefundRequestsTab from '@/components/warehouse/RefundRequestsTab';
 import ItemStatusManager from '@/components/inventory/ItemStatusManager';
+import AddProductForm from '@/components/warehouse/AddProductForm';
 import { getProducts } from '@/services';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,10 +121,7 @@ const Warehouse = () => {
             Manage your inventory, track stock levels, and analyze warehouse operations.
           </p>
         </div>
-        <Button>
-          <Package size={16} className="mr-2" />
-          Add New Product
-        </Button>
+        <AddProductForm existingCategories={categories} />
       </div>
 
       {/* Search and Filters */}
