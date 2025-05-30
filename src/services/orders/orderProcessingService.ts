@@ -173,7 +173,7 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
 };
 
 /**
- * Processes a refund by marking items as in_repair and creating transaction records
+ * Processes a refund by marking items as damaged and creating transaction records
  */
 export const processRefund = async (orderId: string, adminUserId: string): Promise<{ success: boolean; error?: string }> => {
   try {
@@ -196,24 +196,24 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
     
     const serialIds = orderItems.map(item => item.item_serial);
     
-    // Update item status to in_repair
+    // Update item status to damaged (not in_repair)
     const { error: updateError } = await supabase
       .from('items')
-      .update({ status: 'in_repair' })
+      .update({ status: 'damaged' })
       .in('serial_id', serialIds);
     
     if (updateError) {
-      console.error('Error updating item status to in_repair:', updateError);
+      console.error('Error updating item status to damaged:', updateError);
       throw updateError;
     }
     
-    // Create transaction records for refund
+    // Create transaction records for refund with the correct admin user
     const transactionData = serialIds.map(serialId => ({
       item_serial: serialId,
       user_id: adminUserId,
       transaction_type: 'refund',
       order_id: orderId,
-      notes: 'Item returned due to approved refund request'
+      notes: 'Item returned due to approved refund request - status set to damaged'
     }));
     
     const { error: transactionError } = await supabase
@@ -225,7 +225,7 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
       throw transactionError;
     }
     
-    console.log(`Successfully processed refund for ${serialIds.length} items`);
+    console.log(`Successfully processed refund for ${serialIds.length} items - marked as damaged`);
     return { success: true };
     
   } catch (error) {
