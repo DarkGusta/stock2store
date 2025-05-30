@@ -104,31 +104,85 @@ export const getDetailedInventory = async (): Promise<InventoryItem[]> => {
 };
 
 /**
- * Updates the status of a specific item
+ * Updates the status of a specific item with proper transaction logging
  */
 export const updateItemStatus = async (
   serialId: string, 
-  newStatus: 'available' | 'sold' | 'damaged' | 'in_repair' | 'unavailable'
+  newStatus: 'available' | 'sold' | 'damaged' | 'in_repair' | 'unavailable',
+  userId: string,
+  reason?: string
 ): Promise<boolean> => {
   try {
-    console.log(`Updating item ${serialId} status to ${newStatus}`);
+    console.log(`Updating item ${serialId} status to ${newStatus} by user ${userId}`);
     
-    const { error } = await supabase
+    // Get current item status first
+    const { data: currentItem, error: fetchError } = await supabase
+      .from('items')
+      .select('status')
+      .eq('serial_id', serialId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching current item status:', fetchError);
+      throw fetchError;
+    }
+    
+    const oldStatus = currentItem.status;
+    
+    // Update item status
+    const { error: updateError } = await supabase
       .from('items')
       .update({ status: newStatus })
       .eq('serial_id', serialId);
     
-    if (error) {
-      console.error('Error updating item status:', error);
-      throw error;
+    if (updateError) {
+      console.error('Error updating item status:', updateError);
+      throw updateError;
     }
     
-    console.log(`Successfully updated item ${serialId} to status ${newStatus}`);
+    // Create transaction record for the status change
+    const transactionType = getTransactionType(oldStatus, newStatus);
+    const notes = reason || `Manual status change from ${oldStatus} to ${newStatus}`;
+    
+    const { error: transactionError } = await supabase
+      .from('transactions')
+      .insert({
+        item_serial: serialId,
+        user_id: userId,
+        transaction_type: transactionType,
+        notes: notes
+      });
+    
+    if (transactionError) {
+      console.error('Error creating transaction record:', transactionError);
+      throw transactionError;
+    }
+    
+    console.log(`Successfully updated item ${serialId} to status ${newStatus} and logged transaction`);
     return true;
   } catch (error) {
     console.error('Error in updateItemStatus:', error);
     return false;
   }
+};
+
+/**
+ * Helper function to determine transaction type based on status change
+ */
+const getTransactionType = (oldStatus: string, newStatus: string): string => {
+  if (newStatus === 'available' && oldStatus !== 'available') {
+    return 'status_change';
+  }
+  if (newStatus === 'damaged') {
+    return 'damage';
+  }
+  if (newStatus === 'in_repair') {
+    return 'repair';
+  }
+  if (newStatus === 'unavailable') {
+    return 'status_change';
+  }
+  return 'status_change';
 };
 
 /**

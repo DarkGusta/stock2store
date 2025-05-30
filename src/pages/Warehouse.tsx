@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import LowStockAlert from '@/components/warehouse/LowStockAlert';
 import InventoryMovementsTable from '@/components/warehouse/InventoryMovementsTable';
 import ShelfMapping from '@/components/warehouse/ShelfMapping';
 import RefundRequestsTab from '@/components/warehouse/RefundRequestsTab';
+import ItemStatusManager from '@/components/inventory/ItemStatusManager';
 import { getProducts } from '@/services';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,6 +159,7 @@ const Warehouse = () => {
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="movements">Movements</TabsTrigger>
           <TabsTrigger value="refunds">Refund Requests</TabsTrigger>
+          <TabsTrigger value="item-status">Item Status</TabsTrigger>
           <TabsTrigger value="shelf">Shelf Mapping</TabsTrigger>
         </TabsList>
         
@@ -234,6 +235,10 @@ const Warehouse = () => {
         
         <TabsContent value="refunds" className="space-y-4">
           <RefundRequestsTab />
+        </TabsContent>
+        
+        <TabsContent value="item-status" className="space-y-4">
+          <ItemStatusManager />
         </TabsContent>
         
         <TabsContent value="shelf" className="space-y-4">
