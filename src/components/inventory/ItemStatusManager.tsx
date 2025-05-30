@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Package, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getDetailedInventory, updateItemStatus, getItemStatusCounts } from '@/services/inventory/inventoryService';
@@ -21,6 +22,9 @@ const ItemStatusManager = () => {
   const [updatingItem, setUpdatingItem] = useState<string | null>(null);
   const [statusChanges, setStatusChanges] = useState<{ [key: string]: string }>({});
   const [reasons, setReasons] = useState<{ [key: string]: string }>({});
+  const [bulkSelectedItems, setBulkSelectedItems] = useState<{ [key: string]: string[] }>({});
+  const [bulkStatusChanges, setBulkStatusChanges] = useState<{ [key: string]: string }>({});
+  const [bulkReasons, setBulkReasons] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,6 +83,103 @@ const ItemStatusManager = () => {
     }
   };
 
+  const handleBulkStatusChange = async (inventoryId: string) => {
+    const selectedItems = bulkSelectedItems[inventoryId] || [];
+    const newStatus = bulkStatusChanges[inventoryId];
+    const reason = bulkReasons[inventoryId];
+
+    if (selectedItems.length === 0 || !newStatus) {
+      toast({
+        title: 'Error',
+        description: 'Please select items and a new status',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setUpdatingItem(inventoryId);
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Update each selected item
+      const updatePromises = selectedItems.map(serialId => 
+        updateItemStatus(serialId, newStatus as any, user.id, reason)
+      );
+
+      const results = await Promise.all(updatePromises);
+      const successCount = results.filter(Boolean).length;
+
+      if (successCount === selectedItems.length) {
+        toast({
+          title: 'Bulk Status Update Complete',
+          description: `Updated ${successCount} items to ${newStatus}`,
+        });
+      } else {
+        toast({
+          title: 'Partial Success',
+          description: `Updated ${successCount} out of ${selectedItems.length} items`,
+          variant: 'destructive',
+        });
+      }
+
+      // Clear bulk selections
+      setBulkSelectedItems(prev => ({ ...prev, [inventoryId]: [] }));
+      setBulkStatusChanges(prev => {
+        const updated = { ...prev };
+        delete updated[inventoryId];
+        return updated;
+      });
+      setBulkReasons(prev => {
+        const updated = { ...prev };
+        delete updated[inventoryId];
+        return updated;
+      });
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['detailed-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-products'] });
+
+    } catch (error) {
+      console.error('Error updating bulk item status:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update item statuses',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingItem(null);
+    }
+  };
+
+  const handleBulkItemSelection = (inventoryId: string, serialId: string, checked: boolean) => {
+    setBulkSelectedItems(prev => {
+      const currentSelected = prev[inventoryId] || [];
+      if (checked) {
+        return { ...prev, [inventoryId]: [...currentSelected, serialId] };
+      } else {
+        return { ...prev, [inventoryId]: currentSelected.filter(id => id !== serialId) };
+      }
+    });
+  };
+
+  const handleSelectAllItems = (inventoryId: string, items: any[], checked: boolean) => {
+    const selectableItems = items.filter(item => item.status !== 'sold');
+    if (checked) {
+      setBulkSelectedItems(prev => ({
+        ...prev,
+        [inventoryId]: selectableItems.map(item => item.serial_id)
+      }));
+    } else {
+      setBulkSelectedItems(prev => ({ ...prev, [inventoryId]: [] }));
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available':
@@ -120,7 +221,7 @@ const ItemStatusManager = () => {
             Item Status Management
           </CardTitle>
           <CardDescription>
-            View and update individual item statuses. Items marked as sold cannot be changed.
+            View and update individual item statuses or change multiple items at once. Items marked as sold cannot be changed.
           </CardDescription>
           <Button onClick={() => refetch()} variant="outline" size="sm" className="w-fit">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -137,6 +238,9 @@ const ItemStatusManager = () => {
             <div className="space-y-4">
               {inventoryItems.map((inventory) => {
                 const statusCounts = getItemStatusCounts(inventory.serial_items);
+                const selectableItems = inventory.serial_items.filter(item => canChangeStatus(item.status));
+                const selectedItems = bulkSelectedItems[inventory.id] || [];
+                const allSelectableSelected = selectableItems.length > 0 && selectableItems.every(item => selectedItems.includes(item.serial_id));
                 
                 return (
                   <Card key={inventory.id} className="border-l-4 border-l-blue-500">
@@ -156,10 +260,79 @@ const ItemStatusManager = () => {
                         </div>
                       </div>
 
+                      {/* Bulk Actions */}
+                      {selectableItems.length > 0 && (
+                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium mb-3">Bulk Actions</h4>
+                          <div className="flex items-center gap-4 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`select-all-${inventory.id}`}
+                                checked={allSelectableSelected}
+                                onCheckedChange={(checked) => handleSelectAllItems(inventory.id, selectableItems, checked as boolean)}
+                              />
+                              <label htmlFor={`select-all-${inventory.id}`} className="text-sm">
+                                Select All ({selectableItems.length})
+                              </label>
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {selectedItems.length} selected
+                            </span>
+                          </div>
+                          
+                          {selectedItems.length > 0 && (
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={bulkStatusChanges[inventory.id] || ''}
+                                onValueChange={(value) => 
+                                  setBulkStatusChanges(prev => ({ ...prev, [inventory.id]: value }))
+                                }
+                              >
+                                <SelectTrigger className="w-40">
+                                  <SelectValue placeholder="New status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="available">Available</SelectItem>
+                                  <SelectItem value="damaged">Damaged</SelectItem>
+                                  <SelectItem value="in_repair">In Repair</SelectItem>
+                                  <SelectItem value="unavailable">Unavailable</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              
+                              <Textarea
+                                placeholder="Reason for status change (optional)"
+                                value={bulkReasons[inventory.id] || ''}
+                                onChange={(e) => 
+                                  setBulkReasons(prev => ({ ...prev, [inventory.id]: e.target.value }))
+                                }
+                                className="min-h-8 w-48"
+                              />
+                              
+                              <Button
+                                onClick={() => handleBulkStatusChange(inventory.id)}
+                                disabled={updatingItem === inventory.id || !bulkStatusChanges[inventory.id]}
+                                size="sm"
+                              >
+                                {updatingItem === inventory.id ? 'Updating...' : `Update ${selectedItems.length} Items`}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-3">
                         <h4 className="font-medium">Individual Items:</h4>
                         {inventory.serial_items.map((item) => (
                           <div key={item.serial_id} className="flex items-center gap-4 p-3 bg-gray-50 rounded">
+                            {canChangeStatus(item.status) && (
+                              <Checkbox
+                                checked={selectedItems.includes(item.serial_id)}
+                                onCheckedChange={(checked) => 
+                                  handleBulkItemSelection(inventory.id, item.serial_id, checked as boolean)
+                                }
+                              />
+                            )}
+                            
                             <div className="flex-1">
                               <span className="font-mono text-sm">{item.serial_id}</span>
                               <Badge className={`ml-2 ${getStatusColor(item.status)}`}>
