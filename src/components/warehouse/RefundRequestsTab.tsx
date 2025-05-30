@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,11 +52,11 @@ const RefundRequestsTab = () => {
           admin_notes,
           reviewed_at,
           reviewed_by,
-          orders!inner (
+          orders (
             order_number,
             total_amount
           ),
-          profiles!inner (
+          profiles (
             name,
             email
           )
@@ -65,7 +64,7 @@ const RefundRequestsTab = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as RefundRequestWithDetails[];
+      return data;
     },
   });
 
