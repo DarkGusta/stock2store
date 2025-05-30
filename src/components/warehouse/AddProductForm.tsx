@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -93,6 +92,83 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
     return `${namePrefix}-${categoryPrefix}`;
   };
 
+  const findAvailableLocation = async () => {
+    // First, get all occupied locations from items
+    const { data: occupiedLocations } = await supabase
+      .from('items')
+      .select('location_id, locations(shelf_number, slot_number)')
+      .not('location_id', 'is', null);
+
+    // Generate all possible locations (shelves A-D, rows 1-3, slots 1-4)
+    const shelves = ['A', 'B', 'C', 'D'];
+    const rows = [1, 2, 3];
+    const slots = [1, 2, 3, 4];
+    
+    const allPossibleLocations = [];
+    for (const shelf of shelves) {
+      for (const row of rows) {
+        for (const slot of slots) {
+          allPossibleLocations.push(`${shelf}${row}-${slot.toString().padStart(2, '0')}`);
+        }
+      }
+    }
+
+    // Create a set of occupied location strings for quick lookup
+    const occupiedLocationStrings = new Set();
+    if (occupiedLocations) {
+      occupiedLocations.forEach((item: any) => {
+        if (item.locations) {
+          const locationString = `${item.locations.shelf_number}${item.locations.slot_number}`;
+          occupiedLocationStrings.add(locationString);
+        }
+      });
+    }
+
+    // Find the first available location
+    for (const location of allPossibleLocations) {
+      if (!occupiedLocationStrings.has(location)) {
+        return location;
+      }
+    }
+
+    // If all locations are occupied, return null
+    return null;
+  };
+
+  const createLocationIfNotExists = async (locationString: string) => {
+    // Parse location string (e.g., "A1-01" -> shelf: "A", slot: "1-01")
+    const [shelf, slot] = locationString.split(/(\d)/);
+    const shelfNumber = shelf;
+    const slotNumber = locationString.substring(1); // Everything after the shelf letter
+
+    // Check if location already exists
+    const { data: existingLocation } = await supabase
+      .from('locations')
+      .select('id')
+      .eq('shelf_number', shelfNumber)
+      .eq('slot_number', slotNumber)
+      .single();
+
+    if (existingLocation) {
+      return existingLocation.id;
+    }
+
+    // Create new location
+    const { data: newLocation, error } = await supabase
+      .from('locations')
+      .insert({
+        shelf_number: shelfNumber,
+        slot_number: slotNumber,
+        capacity: 1,
+        status: true
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newLocation.id;
+  };
+
   const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
@@ -180,14 +256,22 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
         }
       }
 
-      // Create individual items with sequential serial IDs
+      // Create individual items with sequential serial IDs and proper location allocation
       const itemsToCreate = [];
       for (let i = 0; i < data.quantity; i++) {
         const serialNumber = (nextNumber + i).toString().padStart(2, '0');
+        const availableLocation = await findAvailableLocation();
+        let locationId = null;
+        
+        if (availableLocation) {
+          locationId = await createLocationIfNotExists(availableLocation);
+        }
+
         itemsToCreate.push({
           serial_id: `${serialPrefix}-${serialNumber}`,
           inventory_id: inventory.id,
-          status: 'available'
+          status: 'available',
+          location_id: locationId
         });
       }
 
@@ -202,7 +286,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
         item_serial: item.serial_id,
         user_id: user.id,
         transaction_type: 'stock_in',
-        notes: `New product added to inventory: ${data.name}`
+        notes: `New product added to inventory: ${data.name}${item.location_id ? ` at location` : ''}`
       }));
 
       const { error: transactionError } = await supabase
@@ -249,7 +333,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
           <DialogDescription>
-            Add a new product to your inventory. Items will be automatically assigned serial IDs.
+            Add a new product to your inventory. Items will be automatically assigned serial IDs and locations.
           </DialogDescription>
         </DialogHeader>
         
