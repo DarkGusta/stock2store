@@ -56,7 +56,7 @@ const RefundRequestsTab = () => {
             order_number,
             total_amount
           ),
-          profiles (
+          profiles!user_id (
             name,
             email
           )
@@ -64,7 +64,7 @@ const RefundRequestsTab = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as RefundRequestWithDetails[];
     },
   });
 
