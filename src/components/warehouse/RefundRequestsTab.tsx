@@ -10,7 +10,7 @@ import { AlertCircle, CheckCircle, XCircle, Clock, Package } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 import { processRefund } from '@/services/orders/orderProcessingService';
 
-interface RefundRequest {
+interface RefundRequestWithDetails {
   id: string;
   order_id: string;
   user_id: string;
@@ -19,14 +19,16 @@ interface RefundRequest {
   photo_url?: string;
   created_at: string;
   admin_notes?: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
   orders: {
     order_number: string;
     total_amount: number;
-  };
+  } | null;
   profiles: {
-    name: string;
-    email: string;
-  };
+    name: string | null;
+    email: string | null;
+  } | null;
 }
 
 const RefundRequestsTab = () => {
@@ -41,12 +43,21 @@ const RefundRequestsTab = () => {
       const { data, error } = await supabase
         .from('refund_requests')
         .select(`
-          *,
-          orders (
+          id,
+          order_id,
+          user_id,
+          description,
+          status,
+          photo_url,
+          created_at,
+          admin_notes,
+          reviewed_at,
+          reviewed_by,
+          orders!inner (
             order_number,
             total_amount
           ),
-          profiles (
+          profiles!inner (
             name,
             email
           )
@@ -54,7 +65,7 @@ const RefundRequestsTab = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as RefundRequest[];
+      return data as RefundRequestWithDetails[];
     },
   });
 
@@ -184,15 +195,15 @@ const RefundRequestsTab = () => {
                             <span className="ml-1 capitalize">{request.status}</span>
                           </Badge>
                           <span className="text-sm text-gray-500">
-                            Order #{request.orders.order_number}
+                            Order #{request.orders?.order_number || 'Unknown'}
                           </span>
                         </div>
                         <h3 className="font-semibold">
-                          Refund Request from {request.profiles.name}
+                          Refund Request from {request.profiles?.name || 'Unknown User'}
                         </h3>
-                        <p className="text-sm text-gray-600">{request.profiles.email}</p>
+                        <p className="text-sm text-gray-600">{request.profiles?.email || 'No email'}</p>
                         <p className="text-sm">
-                          <strong>Amount:</strong> ${request.orders.total_amount}
+                          <strong>Amount:</strong> ${request.orders?.total_amount || 0}
                         </p>
                         <p className="text-sm">
                           <strong>Submitted:</strong> {new Date(request.created_at).toLocaleDateString()}
