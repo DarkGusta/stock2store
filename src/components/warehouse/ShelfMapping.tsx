@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,7 +56,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
           status,
           inventory_id,
           location_id,
-          inventory (
+          inventory!inner (
             id,
             name,
             description,
@@ -69,28 +68,37 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
           )
         `);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching items:', error);
+        throw error;
+      }
+
+      console.log('Raw items data:', itemsData);
 
       // Group items by inventory_id and count statuses
       const inventoryMap = new Map<string, ProductWithItems>();
       
       itemsData?.forEach((item: any) => {
         const inventoryId = item.inventory_id;
+        const inventoryData = item.inventory;
+        
         if (!inventoryMap.has(inventoryId)) {
-          const product = products.find(p => p.id === inventoryId);
-          if (product) {
-            inventoryMap.set(inventoryId, {
-              ...product,
-              itemStatuses: {
-                available: 0,
-                sold: 0,
-                damaged: 0,
-                in_repair: 0,
-                unavailable: 0
-              },
-              items: []
-            });
-          }
+          inventoryMap.set(inventoryId, {
+            id: inventoryId,
+            name: inventoryData.name,
+            description: inventoryData.description || '',
+            category: 'Unknown', // Will be filled from products data
+            stock: inventoryData.quantity,
+            location: '',
+            itemStatuses: {
+              available: 0,
+              sold: 0,
+              damaged: 0,
+              in_repair: 0,
+              unavailable: 0
+            },
+            items: []
+          });
         }
         
         const productData = inventoryMap.get(inventoryId);
@@ -105,7 +113,17 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         }
       });
 
-      return Array.from(inventoryMap.values());
+      // Merge with products data to get categories
+      const result = Array.from(inventoryMap.values()).map(product => {
+        const originalProduct = products.find(p => p.id === product.id);
+        return {
+          ...product,
+          category: originalProduct?.category || 'Unknown'
+        };
+      });
+
+      console.log('Processed detailed products:', result);
+      return result;
     },
     enabled: products.length > 0
   });
