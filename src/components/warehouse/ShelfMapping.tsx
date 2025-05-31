@@ -83,13 +83,20 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         const inventoryData = item.inventory;
         
         if (!inventoryMap.has(inventoryId)) {
+          // Find the original product to get all required properties
+          const originalProduct = products.find(p => p.id === inventoryId);
+          
           inventoryMap.set(inventoryId, {
             id: inventoryId,
             name: inventoryData.name,
             description: inventoryData.description || '',
-            category: 'Unknown', // Will be filled from products data
+            category: originalProduct?.category || 'Unknown',
             stock: inventoryData.quantity,
-            location: '',
+            location: originalProduct?.location || '',
+            price: originalProduct?.price || 0,
+            image: originalProduct?.image || '',
+            createdAt: originalProduct?.createdAt || new Date(),
+            updatedAt: originalProduct?.updatedAt || new Date(),
             itemStatuses: {
               available: 0,
               sold: 0,
@@ -113,14 +120,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         }
       });
 
-      // Merge with products data to get categories
-      const result = Array.from(inventoryMap.values()).map(product => {
-        const originalProduct = products.find(p => p.id === product.id);
-        return {
-          ...product,
-          category: originalProduct?.category || 'Unknown'
-        };
-      });
+      const result = Array.from(inventoryMap.values());
 
       console.log('Processed detailed products:', result);
       return result;
