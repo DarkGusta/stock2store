@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ import {
 import { Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface AddProductFormProps {
   existingCategories: string[];
@@ -51,6 +52,24 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
   const [categoryType, setCategoryType] = useState<'existing' | 'new'>('existing');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch product types from database
+  const { data: productTypes = [] } = useQuery({
+    queryKey: ['product-types'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product_types')
+        .select('id, name')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching product types:', error);
+        throw error;
+      }
+
+      return data || [];
+    }
+  });
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -159,7 +178,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
       .insert({
         shelf_number: shelfNumber,
         slot_number: slotNumber,
-        capacity: 1,
+        capacity: 100, // Set higher capacity for multiple items
         status: true
       })
       .select('id')
@@ -221,16 +240,34 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
 
       if (inventoryError) throw inventoryError;
 
-      // Create price entry
-      const { error: priceError } = await supabase
+      // Check if a price already exists for this inventory item
+      const { data: existingPrice } = await supabase
         .from('price')
-        .insert({
-          inventory_id: inventory.id,
-          amount: data.price,
-          status: true
-        });
+        .select('id')
+        .eq('inventory_id', inventory.id)
+        .eq('status', true)
+        .single();
 
-      if (priceError) throw priceError;
+      // Only create price if it doesn't exist
+      if (!existingPrice) {
+        const { error: priceError } = await supabase
+          .from('price')
+          .insert({
+            inventory_id: inventory.id,
+            amount: data.price,
+            status: true
+          });
+
+        if (priceError) throw priceError;
+      } else {
+        // Update existing price
+        const { error: priceUpdateError } = await supabase
+          .from('price')
+          .update({ amount: data.price })
+          .eq('id', existingPrice.id);
+
+        if (priceUpdateError) throw priceUpdateError;
+      }
 
       // Generate serial prefix
       const serialPrefix = generateSerialPrefix(data.name, finalCategory);
@@ -256,22 +293,24 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
         }
       }
 
-      // Create individual items with sequential serial IDs and proper location allocation
+      // Find one available location for all items of this product
+      const availableLocation = await findAvailableLocation();
+      let locationId = null;
+      
+      if (availableLocation) {
+        locationId = await createLocationIfNotExists(availableLocation);
+      }
+
+      // Create individual items with sequential serial IDs all at the same location
       const itemsToCreate = [];
       for (let i = 0; i < data.quantity; i++) {
         const serialNumber = (nextNumber + i).toString().padStart(2, '0');
-        const availableLocation = await findAvailableLocation();
-        let locationId = null;
-        
-        if (availableLocation) {
-          locationId = await createLocationIfNotExists(availableLocation);
-        }
 
         itemsToCreate.push({
           serial_id: `${serialPrefix}-${serialNumber}`,
           inventory_id: inventory.id,
           status: 'available',
-          location_id: locationId
+          location_id: locationId // All items go to the same location
         });
       }
 
@@ -286,7 +325,8 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
         item_serial: item.serial_id,
         user_id: user.id,
         transaction_type: 'stock_in',
-        notes: `New product added to inventory: ${data.name}${item.location_id ? ` at location` : ''}`
+        notes: `New product added to inventory: ${data.name}${item.location_id ? ` at ${availableLocation}` : ''}`,
+        destination_location_id: item.location_id
       }));
 
       const { error: transactionError } = await supabase
@@ -297,7 +337,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
 
       toast({
         title: 'Product Added Successfully',
-        description: `Added ${data.quantity} units of ${data.name} to inventory`,
+        description: `Added ${data.quantity} units of ${data.name} to inventory${availableLocation ? ` at location ${availableLocation}` : ''}`,
       });
 
       // Reset form and close dialog
@@ -308,6 +348,8 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
       queryClient.invalidateQueries({ queryKey: ['warehouse-products'] });
       queryClient.invalidateQueries({ queryKey: ['detailed-inventory'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-products'] });
+      queryClient.invalidateQueries({ queryKey: ['detailed-products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-types'] });
 
     } catch (error) {
       console.error('Error adding product:', error);
@@ -333,7 +375,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
           <DialogDescription>
-            Add a new product to your inventory. Items will be automatically assigned serial IDs and locations.
+            Add a new product to your inventory. All items will be grouped together at the same location.
           </DialogDescription>
         </DialogHeader>
         
@@ -404,9 +446,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ existingCategories }) =
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {existingCategories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
+                            {productTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.name}>
+                                {type.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
