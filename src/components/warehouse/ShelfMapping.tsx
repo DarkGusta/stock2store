@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -268,9 +269,9 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         description: `${draggedItem.product_name} (${draggedItem.serial_id}) moved to ${targetLocationString}`,
       });
 
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['detailed-products'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      // Refresh data to update the display
+      await queryClient.invalidateQueries({ queryKey: ['detailed-products'] });
+      await queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
 
     } catch (error) {
       console.error('Error updating location:', error);

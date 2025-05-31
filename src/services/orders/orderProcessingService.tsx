@@ -117,25 +117,6 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw orderItemsError;
       }
       
-      // Create transaction records for each sold item - only one per item
-      const transactionData = availableItems.map(item => ({
-        item_serial: item.serial_id,
-        user_id: orderData.userId,
-        transaction_type: 'sale',
-        order_id: order.id,
-        notes: `Item sold through order ${orderNumber}`
-      }));
-      
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert(transactionData);
-      
-      if (transactionError) {
-        console.error('Error creating transaction records:', transactionError);
-        throw transactionError;
-      }
-      
-      console.log(`Successfully created ${transactionData.length} transaction records for sold items`);
       console.log(`Successfully processed ${orderItem.quantity} items for product ${orderItem.productId}`);
     }
     
@@ -196,18 +177,8 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
     
     const serialIds = orderItems.map(item => item.item_serial);
     
-    // Update item status to damaged directly, without triggering additional database triggers
-    const { error: updateError } = await supabase
-      .from('items')
-      .update({ status: 'damaged' })
-      .in('serial_id', serialIds);
-    
-    if (updateError) {
-      console.error('Error updating item status to damaged:', updateError);
-      throw updateError;
-    }
-    
-    // Create a single transaction record for the refund operation
+    // First, create the refund transaction records BEFORE updating item status
+    // This prevents the database trigger from creating duplicate transactions
     const transactionData = serialIds.map(serialId => ({
       item_serial: serialId,
       user_id: adminUserId,
@@ -223,6 +194,20 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
     if (transactionError) {
       console.error('Error creating refund transaction records:', transactionError);
       throw transactionError;
+    }
+    
+    console.log(`Successfully created ${transactionData.length} refund transaction records`);
+    
+    // Now update item status to damaged
+    // Since we already created the transaction record, the trigger won't create duplicates
+    const { error: updateError } = await supabase
+      .from('items')
+      .update({ status: 'damaged' })
+      .in('serial_id', serialIds);
+    
+    if (updateError) {
+      console.error('Error updating item status to damaged:', updateError);
+      throw updateError;
     }
     
     console.log(`Successfully processed refund for ${serialIds.length} items - marked as damaged`);
