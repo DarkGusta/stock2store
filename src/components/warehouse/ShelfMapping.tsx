@@ -37,8 +37,8 @@ interface ProductWithItems extends Product {
 
 const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }) => {
   const [selectedShelf, setSelectedShelf] = useState<string>('A');
-  const [draggedItem, setDraggedItem] = useState<{
-    serial_id: string;
+  const [draggedProduct, setDraggedProduct] = useState<{
+    productId: string;
     product_name: string;
   } | null>(null);
   const { toast } = useToast();
@@ -122,7 +122,6 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
       });
 
       const result = Array.from(inventoryMap.values());
-
       console.log('Processed detailed products:', result);
       return result;
     },
@@ -133,34 +132,45 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
   const shelves = ['A', 'B', 'C', 'D'];
   const slotsPerShelf = 12; // 3x4 grid per shelf
 
-  // Get all items for a specific shelf
-  const getItemsForShelf = (shelf: string) => {
-    const shelfItems: Array<{
-      item: any;
+  // Get products for a specific shelf (group by product, not individual items)
+  const getProductsForShelf = (shelf: string) => {
+    const shelfProducts: Array<{
       product: ProductWithItems;
       slotPosition: number;
+      itemCount: number;
     }> = [];
 
     detailedProducts.forEach(product => {
-      product.items.forEach(item => {
-        if (item.location?.shelf_number === shelf) {
-          // Calculate slot position based on slot_number (e.g., "1-01" -> position 0)
-          const [row, slot] = item.location.slot_number.split('-');
+      // Find if any items of this product are on this shelf
+      const itemsOnShelf = product.items.filter(item => 
+        item.location?.shelf_number === shelf
+      );
+
+      if (itemsOnShelf.length > 0) {
+        // Use the first item's location to determine slot position
+        const firstItem = itemsOnShelf[0];
+        if (firstItem.location) {
+          const [row, slot] = firstItem.location.slot_number.split('-');
           const slotPosition = (parseInt(row) - 1) * 4 + parseInt(slot) - 1;
-          shelfItems.push({ item, product, slotPosition });
+          
+          shelfProducts.push({ 
+            product, 
+            slotPosition, 
+            itemCount: itemsOnShelf.length 
+          });
         }
-      });
+      }
     });
 
-    return shelfItems;
+    return shelfProducts;
   };
 
-  const handleDragStart = (e: React.DragEvent, item: any, product: ProductWithItems) => {
-    setDraggedItem({
-      serial_id: item.serial_id,
+  const handleDragStart = (e: React.DragEvent, product: ProductWithItems) => {
+    setDraggedProduct({
+      productId: product.id,
       product_name: product.name
     });
-    e.dataTransfer.setData('text/plain', item.serial_id);
+    e.dataTransfer.setData('text/plain', product.id);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -170,7 +180,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
   const handleDrop = async (e: React.DragEvent, targetShelf: string, targetSlot: number) => {
     e.preventDefault();
     
-    if (!draggedItem) return;
+    if (!draggedProduct) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -198,7 +208,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
           .insert({
             shelf_number: targetShelf,
             slot_number: `${row}-${slot.toString().padStart(2, '0')}`,
-            capacity: 1,
+            capacity: 100, // Set higher capacity for multiple items
             status: true
           })
           .select('id')
@@ -208,65 +218,56 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         targetLocation = newLocation;
       }
 
-      // Check if target location is already occupied
-      const { data: occupiedItem } = await supabase
+      // Get all items for this product
+      const { data: productItems, error: itemsError } = await supabase
         .from('items')
-        .select('serial_id')
-        .eq('location_id', targetLocation.id)
-        .neq('serial_id', draggedItem.serial_id)
-        .single();
+        .select('serial_id, location_id, locations(shelf_number, slot_number)')
+        .eq('inventory_id', draggedProduct.productId);
 
-      if (occupiedItem) {
+      if (itemsError) throw itemsError;
+
+      if (!productItems || productItems.length === 0) {
         toast({
-          title: 'Location Occupied',
-          description: `Location ${targetLocationString} is already occupied by ${occupiedItem.serial_id}`,
+          title: 'No Items Found',
+          description: `No items found for product ${draggedProduct.product_name}`,
           variant: 'destructive',
         });
         return;
       }
 
       // Get current location for transaction logging
-      const { data: currentItem } = await supabase
-        .from('items')
-        .select(`
-          location_id,
-          locations (
-            shelf_number,
-            slot_number
-          )
-        `)
-        .eq('serial_id', draggedItem.serial_id)
-        .single();
-
-      const oldLocation = currentItem?.locations 
-        ? `${currentItem.locations.shelf_number}${currentItem.locations.slot_number}`
+      const oldLocation = productItems[0]?.locations 
+        ? `${productItems[0].locations.shelf_number}${productItems[0].locations.slot_number}`
         : 'Unassigned';
 
-      // Update item location
+      // Update all items of this product to the new location
+      const serialIds = productItems.map(item => item.serial_id);
       const { error: updateError } = await supabase
         .from('items')
         .update({ location_id: targetLocation.id })
-        .eq('serial_id', draggedItem.serial_id);
+        .in('serial_id', serialIds);
 
       if (updateError) throw updateError;
 
-      // Create transaction record for location change
+      // Create transaction records for the location change
+      const transactionRecords = serialIds.map(serialId => ({
+        item_serial: serialId,
+        user_id: user.id,
+        transaction_type: 'location_change',
+        notes: `Product ${draggedProduct.product_name} moved from ${oldLocation} to ${targetLocationString}`,
+        source_location_id: productItems.find(item => item.serial_id === serialId)?.location_id,
+        destination_location_id: targetLocation.id
+      }));
+
       const { error: transactionError } = await supabase
         .from('transactions')
-        .insert({
-          item_serial: draggedItem.serial_id,
-          user_id: user.id,
-          transaction_type: 'location_change',
-          notes: `Item moved from ${oldLocation} to ${targetLocationString}`,
-          source_location_id: currentItem?.location_id,
-          destination_location_id: targetLocation.id
-        });
+        .insert(transactionRecords);
 
       if (transactionError) throw transactionError;
 
       toast({
-        title: 'Location Updated',
-        description: `${draggedItem.product_name} (${draggedItem.serial_id}) moved to ${targetLocationString}`,
+        title: 'Product Location Updated',
+        description: `All ${serialIds.length} items of ${draggedProduct.product_name} moved to ${targetLocationString}`,
       });
 
       // Refresh data to update the display
@@ -281,7 +282,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         variant: 'destructive',
       });
     } finally {
-      setDraggedItem(null);
+      setDraggedProduct(null);
     }
   };
 
@@ -300,10 +301,6 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
     }
   };
 
-  const getTotalItems = (product: ProductWithItems) => {
-    return Object.values(product.itemStatuses).reduce((sum, count) => sum + count, 0);
-  };
-
   if (isLoading) {
     return (
       <Card>
@@ -320,7 +317,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
     );
   }
 
-  const shelfItems = getItemsForShelf(selectedShelf);
+  const shelfProducts = getProductsForShelf(selectedShelf);
 
   return (
     <Card>
@@ -330,7 +327,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
           Warehouse Shelf Mapping
         </CardTitle>
         <CardDescription>
-          Drag and drop items to change their location. Changes are logged in movements.
+          Drag and drop products to change their location. All items of a product move together.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -352,7 +349,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         <div className="border-2 border-gray-300 rounded-lg p-6 bg-gray-50">
           <div className="text-center mb-4">
             <h3 className="text-lg font-semibold">Shelf {selectedShelf}</h3>
-            <p className="text-sm text-gray-600">3 rows × 4 columns (drag items to move them)</p>
+            <p className="text-sm text-gray-600">3 rows × 4 columns (drag products to move all items together)</p>
           </div>
           
           <div className="grid grid-cols-4 gap-4 max-w-4xl mx-auto">
@@ -361,19 +358,19 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
               const slot = (index % 4) + 1;
               const slotNumber = `${selectedShelf}${row}-${slot.toString().padStart(2, '0')}`;
               
-              // Find item in this slot
-              const itemInSlot = shelfItems.find(shelfItem => shelfItem.slotPosition === index);
+              // Find product in this slot
+              const productInSlot = shelfProducts.find(shelfProduct => shelfProduct.slotPosition === index);
               
               return (
                 <div
                   key={index}
                   className={`
                     border-2 rounded-lg p-3 h-32 flex flex-col justify-between transition-colors
-                    ${itemInSlot 
+                    ${productInSlot 
                       ? 'border-blue-300 bg-blue-50 cursor-move' 
                       : 'border-gray-200 bg-white border-dashed'
                     }
-                    ${draggedItem ? 'hover:border-green-400 hover:bg-green-50' : ''}
+                    ${draggedProduct ? 'hover:border-green-400 hover:bg-green-50' : ''}
                   `}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, selectedShelf, index)}
@@ -382,39 +379,39 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
                     {slotNumber}
                   </div>
                   
-                  {itemInSlot ? (
+                  {productInSlot ? (
                     <div 
                       className="flex-1 flex flex-col justify-center cursor-move"
                       draggable
-                      onDragStart={(e) => handleDragStart(e, itemInSlot.item, itemInSlot.product)}
+                      onDragStart={(e) => handleDragStart(e, productInSlot.product)}
                     >
                       <div className="text-center">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {itemInSlot.product.name}
+                          {productInSlot.product.name}
                         </p>
-                        <p className="text-xs text-gray-600 mt-1 font-mono">
-                          {itemInSlot.item.serial_id}
+                        <p className="text-xs text-gray-600 mt-1">
+                          {productInSlot.itemCount} items
                         </p>
                         
-                        {/* Item status indicator */}
-                        <div className="flex justify-center mt-2">
-                          {getStatusIcon(itemInSlot.item.status as keyof ItemStatus)}
+                        {/* Status breakdown */}
+                        <div className="flex justify-center gap-1 mt-2">
+                          {productInSlot.product.itemStatuses.available > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Package className="h-3 w-3 text-green-600" />
+                              <span className="text-xs">{productInSlot.product.itemStatuses.available}</span>
+                            </div>
+                          )}
+                          {productInSlot.product.itemStatuses.damaged > 0 && (
+                            <div className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3 text-red-600" />
+                              <span className="text-xs">{productInSlot.product.itemStatuses.damaged}</span>
+                            </div>
+                          )}
                         </div>
                         
-                        {/* Status badge */}
-                        <Badge 
-                          variant="outline" 
-                          className={`mt-2 text-xs ${
-                            itemInSlot.item.status === 'available'
-                              ? 'border-green-300 text-green-700'
-                              : itemInSlot.item.status === 'sold'
-                              ? 'border-blue-300 text-blue-700'
-                              : itemInSlot.item.status === 'damaged'
-                              ? 'border-red-300 text-red-700'
-                              : 'border-yellow-300 text-yellow-700'
-                          }`}
-                        >
-                          {itemInSlot.item.status}
+                        {/* Category badge */}
+                        <Badge variant="outline" className="mt-2 text-xs">
+                          {productInSlot.product.category}
                         </Badge>
                       </div>
                     </div>
@@ -455,7 +452,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
           </div>
           <p className="text-sm text-gray-600">
             <Move className="h-4 w-4 inline mr-1" />
-            Drag items from one slot to another to change their location. All moves are logged in the movements tab.
+            Drag products to move all items of that product together to a new location.
           </p>
         </div>
 
