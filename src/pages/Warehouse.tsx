@@ -13,6 +13,7 @@ import ShelfMapping from '@/components/warehouse/ShelfMapping';
 import RefundRequestsTab from '@/components/warehouse/RefundRequestsTab';
 import ItemStatusManager from '@/components/inventory/ItemStatusManager';
 import AddProductForm from '@/components/warehouse/AddProductForm';
+import PendingOrdersTab from '@/components/warehouse/PendingOrdersTab';
 import { getProducts } from '@/services';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -154,7 +155,7 @@ const Warehouse = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="orders">Order Requests</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="movements">Movements</TabsTrigger>
           <TabsTrigger value="refunds">Refund Requests</TabsTrigger>
@@ -164,9 +165,8 @@ const Warehouse = () => {
         
         <TabsContent value="overview" className="space-y-4">
           <WarehouseOverview products={products} inventoryMovements={inventoryMovements} />
-        </TabsContent>
-        
-        <TabsContent value="analytics" className="space-y-4">
+          
+          {/* Analytics Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -205,6 +205,10 @@ const Warehouse = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        
+        <TabsContent value="orders" className="space-y-4">
+          <PendingOrdersTab />
         </TabsContent>
         
         <TabsContent value="inventory" className="space-y-4">
