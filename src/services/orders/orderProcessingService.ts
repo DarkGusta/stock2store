@@ -85,9 +85,9 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw new Error(`Insufficient stock for product ${inventoryCheck.name}. Available: ${availableItems?.length || 0}, Required: ${orderItem.quantity}`);
       }
       
-      console.log('Available items to mark as sold:', availableItems);
+      console.log('Available items to reserve for order:', availableItems);
       
-      // Mark items as sold
+      // Mark items as sold (they will be reserved for this order)
       const serialIds = availableItems.map(item => item.serial_id);
       const { error: updateError } = await supabase
         .from('items')
@@ -117,25 +117,6 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw orderItemsError;
       }
       
-      // Create transaction records for each sold item with the correct user ID
-      const transactionData = availableItems.map(item => ({
-        item_serial: item.serial_id,
-        user_id: orderData.userId, // Use the actual customer's user ID
-        transaction_type: 'sale',
-        order_id: order.id,
-        notes: `Item sold through order ${orderNumber} to customer ${orderData.userId}`
-      }));
-      
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert(transactionData);
-      
-      if (transactionError) {
-        console.error('Error creating transaction records:', transactionError);
-        throw transactionError;
-      }
-      
-      console.log(`Successfully created ${transactionData.length} transaction records for sold items`);
       console.log(`Successfully processed ${orderItem.quantity} items for product ${orderItem.productId}`);
     }
     
@@ -149,10 +130,56 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
 };
 
 /**
- * Completes an order by changing its status to completed
+ * Completes an order by changing its status to completed and creating sale transaction records
  */
 export const completeOrder = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
   try {
+    // First get the order details
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, user_id, order_number')
+      .eq('id', orderId)
+      .single();
+    
+    if (orderError) {
+      console.error('Error fetching order:', orderError);
+      throw orderError;
+    }
+
+    // Get all order items for this order
+    const { data: orderItems, error: orderItemsError } = await supabase
+      .from('order_items')
+      .select('item_serial')
+      .eq('order_id', orderId);
+    
+    if (orderItemsError) {
+      console.error('Error fetching order items:', orderItemsError);
+      throw orderItemsError;
+    }
+
+    // Create transaction records for each sold item with the correct customer user ID
+    if (orderItems && orderItems.length > 0) {
+      const transactionData = orderItems.map(item => ({
+        item_serial: item.item_serial,
+        user_id: order.user_id, // Use the customer's user ID
+        transaction_type: 'sale',
+        order_id: orderId,
+        notes: `Item sold through order ${order.order_number} - order accepted by warehouse`
+      }));
+      
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert(transactionData);
+      
+      if (transactionError) {
+        console.error('Error creating sale transaction records:', transactionError);
+        throw transactionError;
+      }
+      
+      console.log(`Successfully created ${transactionData.length} sale transaction records`);
+    }
+
+    // Update order status to completed
     const { error } = await supabase
       .from('orders')
       .update({ status: 'completed' })
