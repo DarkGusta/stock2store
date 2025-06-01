@@ -16,7 +16,7 @@ export interface OrderData {
 }
 
 /**
- * Creates an order and updates inventory by marking items as sold
+ * Creates an order and updates inventory by marking items as pending
  */
 export const processOrder = async (orderData: OrderData): Promise<{ success: boolean; orderId?: string; error?: string }> => {
   console.log('Processing order:', orderData);
@@ -87,19 +87,19 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
       
       console.log('Available items to reserve for order:', availableItems);
       
-      // Mark items as sold (they will be reserved for this order)
+      // Mark items as pending (not sold yet, just reserved for this order)
       const serialIds = availableItems.map(item => item.serial_id);
       const { error: updateError } = await supabase
         .from('items')
-        .update({ status: 'sold' })
+        .update({ status: 'pending' })
         .in('serial_id', serialIds);
       
       if (updateError) {
-        console.error('Error updating item status:', updateError);
+        console.error('Error updating item status to pending:', updateError);
         throw updateError;
       }
       
-      console.log(`Successfully marked ${serialIds.length} items as sold:`, serialIds);
+      console.log(`Successfully marked ${serialIds.length} items as pending:`, serialIds);
       
       // Create order_items records
       const orderItemsData = availableItems.map(item => ({
@@ -130,7 +130,7 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
 };
 
 /**
- * Completes an order by changing its status to completed and creating sale transaction records
+ * Completes an order by changing its status to completed and marking items as sold
  */
 export const completeOrder = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
   try {
@@ -157,8 +157,23 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
       throw orderItemsError;
     }
 
-    // Create transaction records for each sold item with the correct customer user ID
     if (orderItems && orderItems.length > 0) {
+      const serialIds = orderItems.map(item => item.item_serial);
+      
+      // Mark items as sold (they were previously pending)
+      const { error: updateError } = await supabase
+        .from('items')
+        .update({ status: 'sold' })
+        .in('serial_id', serialIds);
+      
+      if (updateError) {
+        console.error('Error updating item status to sold:', updateError);
+        throw updateError;
+      }
+      
+      console.log(`Successfully marked ${serialIds.length} items as sold:`, serialIds);
+
+      // Create transaction records for each sold item with the correct customer user ID
       const transactionData = orderItems.map(item => ({
         item_serial: item.item_serial,
         user_id: order.user_id, // Use the customer's user ID

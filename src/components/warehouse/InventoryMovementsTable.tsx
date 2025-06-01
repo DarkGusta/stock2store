@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowDown, ArrowUp, Package, RotateCcw } from 'lucide-react';
+import { ArrowDown, ArrowUp, Package, RotateCcw, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -72,6 +72,15 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
         color: 'bg-red-600', 
         icon: ArrowDown,
         description: 'Item marked as damaged'
+      };
+    }
+    
+    if (transactionType.includes('pending') || transactionType.includes('reserved')) {
+      return { 
+        label: 'Reserved', 
+        color: 'bg-blue-500', 
+        icon: Clock,
+        description: 'Item reserved for pending order'
       };
     }
     
