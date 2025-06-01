@@ -48,13 +48,13 @@ export const navigationItems: NavItem[] = [
     name: 'Orders', 
     href: '/orders', 
     icon: ListOrdered, 
-    roles: ['customer', 'admin']
+    roles: ['customer', 'admin', 'warehouse', 'analyst']
   },
   { 
     name: 'Returns', 
     href: '/returns', 
     icon: RotateCcw, 
-    roles: ['customer', 'admin']
+    roles: ['customer', 'admin', 'warehouse', 'analyst']
   },
   { 
     name: 'Profile', 

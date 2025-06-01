@@ -117,13 +117,13 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw orderItemsError;
       }
       
-      // Create transaction records for each sold item
+      // Create transaction records for each sold item with the correct user ID
       const transactionData = availableItems.map(item => ({
         item_serial: item.serial_id,
-        user_id: orderData.userId,
+        user_id: orderData.userId, // Use the actual customer's user ID
         transaction_type: 'sale',
         order_id: order.id,
-        notes: `Item sold through order ${orderNumber}`
+        notes: `Item sold through order ${orderNumber} to customer ${orderData.userId}`
       }));
       
       const { error: transactionError } = await supabase
