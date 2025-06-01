@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Box, Package, ArrowDown, ArrowUp } from 'lucide-react';
+import { Box, Package, ArrowDown, ArrowUp, Grid3X3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Product, InventoryMovement } from '@/types';
 
@@ -10,6 +10,9 @@ interface WarehouseOverviewProps {
 }
 
 const WarehouseOverview: React.FC<WarehouseOverviewProps> = ({ products, inventoryMovements }) => {
+  // Get unique categories from products
+  const categories = [...new Set(products.map(p => p.category))];
+
   return (
     <Card>
       <CardHeader>
@@ -58,6 +61,15 @@ const WarehouseOverview: React.FC<WarehouseOverviewProps> = ({ products, invento
               return movementDate.toDateString() === today.toDateString();
             }).length}
           </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="bg-purple-100 p-2 rounded-md">
+              <Grid3X3 size={20} className="text-purple-600" />
+            </div>
+            <span className="ml-2 text-sm">Categories</span>
+          </div>
+          <span className="font-semibold">{categories.length}</span>
         </div>
       </CardContent>
     </Card>

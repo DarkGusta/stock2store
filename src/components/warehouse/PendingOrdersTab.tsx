@@ -22,7 +22,7 @@ interface PendingOrder {
   profiles: {
     name: string;
     email: string;
-  };
+  } | null;
   order_items: {
     id: string;
     item_serial: string;
@@ -30,8 +30,8 @@ interface PendingOrder {
     items: {
       inventory: {
         name: string;
-      };
-    };
+      } | null;
+    } | null;
   }[];
 }
 
@@ -156,7 +156,7 @@ const PendingOrdersTab: React.FC = () => {
                   <CardDescription className="flex items-center gap-4 mt-2">
                     <span className="flex items-center gap-1">
                       <User className="h-4 w-4" />
-                      {order.profiles.name} ({order.profiles.email})
+                      {order.profiles?.name || 'Unknown User'} ({order.profiles?.email || 'No email'})
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
@@ -202,7 +202,7 @@ const PendingOrdersTab: React.FC = () => {
                       {order.order_items.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">
-                            {item.items.inventory.name}
+                            {item.items?.inventory?.name || 'Unknown Product'}
                           </TableCell>
                           <TableCell className="text-gray-600 dark:text-gray-400">
                             {item.item_serial}
