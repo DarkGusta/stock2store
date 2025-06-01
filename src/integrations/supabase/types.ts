@@ -602,6 +602,7 @@ export type Database = {
         | "in_repair"
         | "sold"
         | "unavailable"
+        | "pending"
       order_status:
         | "pending"
         | "processing"
@@ -727,7 +728,14 @@ export const Constants = {
   public: {
     Enums: {
       damage_report_status: ["completed", "in_progess", "received"],
-      item_status: ["available", "damaged", "in_repair", "sold", "unavailable"],
+      item_status: [
+        "available",
+        "damaged",
+        "in_repair",
+        "sold",
+        "unavailable",
+        "pending",
+      ],
       order_status: [
         "pending",
         "processing",

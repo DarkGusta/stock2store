@@ -10,7 +10,7 @@ export interface InventoryItem {
   category: string;
   serial_items: {
     serial_id: string;
-    status: 'available' | 'sold' | 'damaged' | 'in_repair' | 'unavailable';
+    status: 'available' | 'sold' | 'damaged' | 'in_repair' | 'unavailable' | 'pending';
   }[];
 }
 
@@ -108,7 +108,7 @@ export const getDetailedInventory = async (): Promise<InventoryItem[]> => {
  */
 export const updateItemStatus = async (
   serialId: string, 
-  newStatus: 'available' | 'sold' | 'damaged' | 'in_repair' | 'unavailable',
+  newStatus: 'available' | 'sold' | 'damaged' | 'in_repair' | 'unavailable' | 'pending',
   userId: string,
   reason?: string
 ): Promise<boolean> => {
@@ -182,6 +182,9 @@ const getTransactionType = (oldStatus: string, newStatus: string): string => {
   if (newStatus === 'unavailable') {
     return 'status_change';
   }
+  if (newStatus === 'pending') {
+    return 'status_change';
+  }
   return 'status_change';
 };
 
@@ -195,6 +198,7 @@ export const getItemStatusCounts = (serialItems: InventoryItem['serial_items']) 
     damaged: 0,
     in_repair: 0,
     unavailable: 0,
+    pending: 0,
   };
   
   serialItems.forEach(item => {
