@@ -14,7 +14,7 @@ const WarehouseOverview: React.FC<WarehouseOverviewProps> = ({ products, invento
     <Card>
       <CardHeader>
         <CardTitle>Warehouse Overview</CardTitle>
-        <CardDescription>Current inventory status</CardDescription>
+        <CardDescription>Current inventory status and key metrics</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
