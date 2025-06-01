@@ -20,8 +20,8 @@ interface PendingOrder {
   status: string;
   user_id: string;
   profiles: {
-    name: string;
-    email: string;
+    name: string | null;
+    email: string | null;
   } | null;
   order_items: {
     id: string;
@@ -43,6 +43,7 @@ const PendingOrdersTab: React.FC = () => {
   const { data: pendingOrders = [], isLoading } = useQuery({
     queryKey: ['pending-orders'],
     queryFn: async () => {
+      // Use a more permissive query by selecting from orders and joining profiles
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -52,10 +53,6 @@ const PendingOrdersTab: React.FC = () => {
           created_at,
           status,
           user_id,
-          profiles!orders_user_id_fkey (
-            name,
-            email
-          ),
           order_items (
             id,
             item_serial,
@@ -70,8 +67,43 @@ const PendingOrdersTab: React.FC = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as PendingOrder[];
+      if (error) {
+        console.error('Error fetching orders:', error);
+        throw error;
+      }
+
+      // Fetch profile data separately to avoid permission issues
+      const orderData = data || [];
+      const userIds = [...new Set(orderData.map(order => order.user_id))];
+      
+      let profilesData: any[] = [];
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.warn('Could not fetch user profiles:', profilesError);
+          // Continue without profile data rather than failing
+        } else {
+          profilesData = profiles || [];
+        }
+      }
+
+      // Combine the data
+      const enrichedOrders = orderData.map(order => {
+        const profile = profilesData.find(p => p.id === order.user_id);
+        return {
+          ...order,
+          profiles: profile ? {
+            name: profile.name,
+            email: profile.email
+          } : null
+        };
+      });
+
+      return enrichedOrders as PendingOrder[];
     },
   });
 
