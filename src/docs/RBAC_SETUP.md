@@ -1,7 +1,7 @@
 
 # Role-Based Access Control (RBAC) System
 
-This document explains the RBAC system implementation and how to use it in the application.
+This document explains the RBAC system implementation and how to use it in an application.
 
 ## Database Structure
 
@@ -22,7 +22,7 @@ Permissions are defined as a combination of:
 
 When an admin user logs in, the system automatically initializes the RBAC tables with default roles and permissions if they don't exist yet.
 
-You can manually run the initialization by calling:
+It possible to manually run the initialization by calling:
 
 ```typescript
 import { initializeRBAC } from "@/services/auth/rbacService";
@@ -101,4 +101,4 @@ The system comes with these default roles:
 3. **customer** - Access to shopping and order management
 4. **analyst** - Read-only access to analytics data
 
-Each role has pre-configured permissions based on their needs. You can extend these by adding more resources and actions as needed.
+Each role has pre-configured permissions based on their needs. It is possible to extend these by adding more resources and actions as needed.

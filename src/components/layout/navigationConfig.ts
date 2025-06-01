@@ -42,7 +42,7 @@ export const navigationItems: NavItem[] = [
     name: 'Shopping Cart', 
     href: '/cart', 
     icon: ShoppingCart, 
-    roles: ['customer', 'admin']
+    roles: ['customer', 'admin', 'warehouse', 'analyst']
   },
   { 
     name: 'Orders', 
