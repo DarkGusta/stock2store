@@ -40,8 +40,6 @@ This project is built with:
 
 # Role-Based Access Control (RBAC) System
 
-This document explains the RBAC system implementation and how to use it in an application.
-
 ## Database Structure
 
 The RBAC system consists of the following tables:
