@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
 
@@ -18,8 +19,11 @@ const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string 
     { resource: 'settings', action: 'update' },
     { resource: 'cart', action: 'view' },
     { resource: 'cart', action: 'update' },
+    { resource: 'orders', action: 'view' },
+    { resource: 'orders', action: 'manage' },
     { resource: 'returns', action: 'view' },
-    { resource: 'returns', action: 'manage' }
+    { resource: 'returns', action: 'manage' },
+    { resource: 'checkout', action: 'view' }
   ],
   warehouse: [
     { resource: 'dashboard', action: 'view' },
@@ -29,7 +33,11 @@ const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string 
     { resource: 'profile', action: 'view' },
     { resource: 'profile', action: 'update' },
     { resource: 'settings', action: 'view' },
-    { resource: 'settings', action: 'update' }
+    { resource: 'settings', action: 'update' },
+    { resource: 'orders', action: 'view' },
+    { resource: 'orders', action: 'manage' },
+    { resource: 'returns', action: 'view' },
+    { resource: 'returns', action: 'manage' }
   ],
   customer: [
     { resource: 'store', action: 'view' },
@@ -40,8 +48,10 @@ const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string 
     { resource: 'settings', action: 'update' },
     { resource: 'cart', action: 'view' },
     { resource: 'cart', action: 'update' },
+    { resource: 'orders', action: 'view' },
     { resource: 'returns', action: 'view' },
-    { resource: 'returns', action: 'manage' }
+    { resource: 'returns', action: 'manage' },
+    { resource: 'checkout', action: 'view' }
   ],
   analyst: [
     { resource: 'dashboard', action: 'view' },
@@ -53,7 +63,9 @@ const FALLBACK_PERMISSIONS: Record<UserRole, { resource: string; action: string 
     { resource: 'profile', action: 'update' },
     { resource: 'settings', action: 'view' },
     { resource: 'cart', action: 'view' },
-    { resource: 'cart', action: 'update' }
+    { resource: 'cart', action: 'update' },
+    { resource: 'orders', action: 'view' },
+    { resource: 'returns', action: 'view' }
   ]
 };
 
