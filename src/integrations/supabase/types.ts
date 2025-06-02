@@ -610,6 +610,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "refunded"
+        | "rejected"
       refund_status: "pending" | "approved" | "rejected"
       user_role: "admin" | "warehouse" | "customer" | "analyst"
     }
@@ -743,6 +744,7 @@ export const Constants = {
         "completed",
         "cancelled",
         "refunded",
+        "rejected",
       ],
       refund_status: ["pending", "approved", "rejected"],
       user_role: ["admin", "warehouse", "customer", "analyst"],
