@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,7 @@ const Warehouse = () => {
     queryFn: getProducts,
   });
 
-  // Fetch inventory movements (transactions)
+  // Fetch inventory movements (transactions) with proper user profile access
   const { data: inventoryMovements = [] } = useQuery({
     queryKey: ['inventory-movements'],
     queryFn: async () => {
@@ -44,32 +43,62 @@ const Warehouse = () => {
               id
             )
           ),
-          profiles!transactions_user_id_fkey (
-            name,
-            email
-          ),
           orders (
-            order_number
+            order_number,
+            user_id
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      return data.map((transaction: any) => ({
-        id: transaction.id,
-        productId: transaction.items.inventory.id,
-        productName: transaction.items.inventory.name,
-        quantity: 1, // Each transaction is for one item
-        type: transaction.transaction_type === 'sale' ? 'out' : 'in',
-        reason: transaction.notes || transaction.transaction_type,
-        performedBy: transaction.profiles?.name || 'System',
-        timestamp: new Date(transaction.created_at),
-        userId: transaction.user_id,
-        userName: transaction.profiles?.name || 'Unknown',
-        serialId: transaction.item_serial,
-        orderNumber: transaction.orders?.order_number
-      })) as InventoryMovement[];
+      // Get all unique user IDs from transactions and orders
+      const userIds = [...new Set([
+        ...data.map(t => t.user_id),
+        ...data.filter(t => t.orders?.user_id).map(t => t.orders.user_id)
+      ])].filter(Boolean);
+
+      // Fetch user profiles separately with error handling
+      let profilesMap = new Map();
+      if (userIds.length > 0) {
+        try {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, name, email')
+            .in('id', userIds);
+          
+          if (profiles) {
+            profiles.forEach(profile => {
+              profilesMap.set(profile.id, profile);
+            });
+          }
+        } catch (profileError) {
+          console.warn('Could not fetch some user profiles:', profileError);
+          // Continue without profile data rather than failing
+        }
+      }
+
+      return data.map((transaction: any) => {
+        const transactionUserProfile = profilesMap.get(transaction.user_id);
+        const orderUserProfile = transaction.orders?.user_id ? profilesMap.get(transaction.orders.user_id) : null;
+        
+        return {
+          id: transaction.id,
+          productId: transaction.items.inventory.id,
+          productName: transaction.items.inventory.name,
+          quantity: 1, // Each transaction is for one item
+          type: transaction.transaction_type === 'sale' ? 'out' : 'in',
+          reason: transaction.notes || transaction.transaction_type,
+          performedBy: transactionUserProfile?.name || 'System',
+          timestamp: new Date(transaction.created_at),
+          userId: transaction.user_id,
+          userName: transactionUserProfile?.name || 'Unknown',
+          serialId: transaction.item_serial,
+          orderNumber: transaction.orders?.order_number,
+          customerName: orderUserProfile?.name || 'Unknown Customer',
+          customerEmail: orderUserProfile?.email || 'No email'
+        };
+      }) as InventoryMovement[];
     },
   });
 

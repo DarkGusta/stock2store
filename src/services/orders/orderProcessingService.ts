@@ -117,6 +117,24 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw orderItemsError;
       }
       
+      // Create transaction record for pending status (order placed)
+      const pendingTransactionData = serialIds.map(serialId => ({
+        item_serial: serialId,
+        user_id: orderData.userId,
+        transaction_type: 'status_change',
+        order_id: order.id,
+        notes: `Item reserved for order ${orderNumber} - status changed to pending`
+      }));
+      
+      const { error: pendingTransactionError } = await supabase
+        .from('transactions')
+        .insert(pendingTransactionData);
+      
+      if (pendingTransactionError) {
+        console.error('Error creating pending transaction records:', pendingTransactionError);
+        throw pendingTransactionError;
+      }
+      
       console.log(`Successfully processed ${orderItem.quantity} items for product ${orderItem.productId}`);
     }
     
@@ -131,6 +149,7 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
 
 /**
  * Completes an order by changing its status to completed and marking items as sold
+ * NOTE: We don't create transaction records here as the database trigger handles that
  */
 export const completeOrder = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
   try {
@@ -161,6 +180,7 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
       const serialIds = orderItems.map(item => item.item_serial);
       
       // Mark items as sold (they were previously pending)
+      // The database trigger will handle creating the sale transaction records
       const { error: updateError } = await supabase
         .from('items')
         .update({ status: 'sold' })
@@ -172,26 +192,6 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
       }
       
       console.log(`Successfully marked ${serialIds.length} items as sold:`, serialIds);
-
-      // Create transaction records for each sold item with the correct customer user ID
-      const transactionData = orderItems.map(item => ({
-        item_serial: item.item_serial,
-        user_id: order.user_id, // Use the customer's user ID
-        transaction_type: 'sale',
-        order_id: orderId,
-        notes: `Item sold through order ${order.order_number} - order accepted by warehouse`
-      }));
-      
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert(transactionData);
-      
-      if (transactionError) {
-        console.error('Error creating sale transaction records:', transactionError);
-        throw transactionError;
-      }
-      
-      console.log(`Successfully created ${transactionData.length} sale transaction records`);
     }
 
     // Update order status to completed

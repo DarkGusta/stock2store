@@ -47,6 +47,8 @@ export interface InventoryMovement {
   userName: string;
   serialId?: string;  // Added for tracking individual items
   orderNumber?: string;  // Added for linking to orders
+  customerName?: string;  // Added for customer information
+  customerEmail?: string;  // Added for customer information
 }
 
 export interface Order {
