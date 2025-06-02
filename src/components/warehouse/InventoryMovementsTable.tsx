@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowDown, ArrowUp, Package, RotateCcw, Clock, Ban } from 'lucide-react';
@@ -31,23 +30,23 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
     const reasonLower = movement.reason.toLowerCase();
     const transactionType = reasonLower;
     
-    // Check for sale transactions
-    if (transactionType.includes('sale') || transactionType.includes('sold')) {
-      return { 
-        label: 'Sale', 
-        color: 'bg-red-500', 
-        icon: ArrowUp,
-        description: 'Item sold to customer'
-      };
-    }
-    
-    // Check for pending/reserved status
+    // Check for pending/reserved status first (when order is placed but not yet accepted)
     if (transactionType.includes('pending') || transactionType.includes('reserved')) {
       return { 
         label: 'Reserved', 
         color: 'bg-blue-500', 
         icon: Clock,
         description: 'Item reserved for pending order'
+      };
+    }
+    
+    // Check for sale transactions (only after order is accepted)
+    if (transactionType.includes('sale') || transactionType.includes('sold')) {
+      return { 
+        label: 'Sale', 
+        color: 'bg-red-500', 
+        icon: ArrowUp,
+        description: 'Item sold to customer'
       };
     }
     
