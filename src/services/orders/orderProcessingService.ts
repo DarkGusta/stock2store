@@ -17,7 +17,7 @@ export interface OrderData {
 
 /**
  * Creates an order and updates inventory by marking items as pending
- * NO transaction records are created at this stage - only when order is accepted/rejected
+ * The database trigger will automatically handle transaction logging
  */
 export const processOrder = async (orderData: OrderData): Promise<{ success: boolean; orderId?: string; error?: string }> => {
   console.log('Processing order:', orderData);
@@ -88,7 +88,7 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
       
       console.log('Available items to reserve for order:', availableItems);
       
-      // Mark items as pending (this will trigger inventory count update via database trigger)
+      // Mark items as pending - the database trigger will handle transaction logging
       const serialIds = availableItems.map(item => item.serial_id);
       const { error: updateError } = await supabase
         .from('items')
@@ -118,25 +118,6 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw orderItemsError;
       }
       
-      // MANUALLY create transaction record for pending status (bypassing trigger)
-      // We need to manually insert this because we want to control when transactions are created
-      const pendingTransactionData = serialIds.map(serialId => ({
-        item_serial: serialId,
-        user_id: orderData.userId,
-        transaction_type: 'status_change',
-        order_id: order.id,
-        notes: `Item reserved for order ${orderNumber} - status changed to pending`
-      }));
-      
-      const { error: pendingTransactionError } = await supabase
-        .from('transactions')
-        .insert(pendingTransactionData);
-      
-      if (pendingTransactionError) {
-        console.error('Error creating pending transaction records:', pendingTransactionError);
-        throw pendingTransactionError;
-      }
-      
       console.log(`Successfully processed ${orderItem.quantity} items for product ${orderItem.productId}`);
     }
     
@@ -151,21 +132,10 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
 
 /**
  * Completes an order by changing its status to completed and marking items as sold
+ * The database trigger will handle transaction logging
  */
 export const completeOrder = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
   try {
-    // First get the order details
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('id, user_id, order_number')
-      .eq('id', orderId)
-      .single();
-    
-    if (orderError) {
-      console.error('Error fetching order:', orderError);
-      throw orderError;
-    }
-
     // Get all order items for this order
     const { data: orderItems, error: orderItemsError } = await supabase
       .from('order_items')
@@ -180,7 +150,7 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
     if (orderItems && orderItems.length > 0) {
       const serialIds = orderItems.map(item => item.item_serial);
       
-      // Mark items as sold (they were previously pending)
+      // Mark items as sold - the database trigger will handle transaction logging
       const { error: updateError } = await supabase
         .from('items')
         .update({ status: 'sold' })
@@ -191,25 +161,7 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
         throw updateError;
       }
       
-      // MANUALLY create sale transaction records (bypassing automatic trigger)
-      const saleTransactionData = serialIds.map(serialId => ({
-        item_serial: serialId,
-        user_id: order.user_id, // Use the customer's user ID for the sale
-        transaction_type: 'sale',
-        order_id: orderId,
-        notes: `Item sold through order ${order.order_number}`
-      }));
-      
-      const { error: saleTransactionError } = await supabase
-        .from('transactions')
-        .insert(saleTransactionData);
-      
-      if (saleTransactionError) {
-        console.error('Error creating sale transaction records:', saleTransactionError);
-        throw saleTransactionError;
-      }
-      
-      console.log(`Successfully marked ${serialIds.length} items as sold and created sale transactions:`, serialIds);
+      console.log(`Successfully marked ${serialIds.length} items as sold:`, serialIds);
     }
 
     // Update order status to completed
@@ -234,23 +186,12 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
 
 /**
  * Rejects an order by changing its status to rejected and marking items as unavailable
+ * The database trigger will handle transaction logging
  */
 export const rejectOrder = async (orderId: string, rejectionReason: string, adminUserId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     console.log('Rejecting order:', orderId, 'Reason:', rejectionReason);
     
-    // First get the order details
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('id, user_id, order_number')
-      .eq('id', orderId)
-      .single();
-    
-    if (orderError) {
-      console.error('Error fetching order:', orderError);
-      throw orderError;
-    }
-
     // Get all order items for this order
     const { data: orderItems, error: orderItemsError } = await supabase
       .from('order_items')
@@ -265,7 +206,7 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
     if (orderItems && orderItems.length > 0) {
       const serialIds = orderItems.map(item => item.item_serial);
       
-      // Mark items as unavailable (they were previously pending)
+      // Mark items as unavailable - the database trigger will handle transaction logging
       const { error: updateError } = await supabase
         .from('items')
         .update({ status: 'unavailable' })
@@ -274,24 +215,6 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
       if (updateError) {
         console.error('Error updating item status to unavailable:', updateError);
         throw updateError;
-      }
-      
-      // Create transaction records for rejection
-      const rejectionTransactionData = serialIds.map(serialId => ({
-        item_serial: serialId,
-        user_id: adminUserId, // Admin who rejected the order
-        transaction_type: 'status_change',
-        order_id: orderId,
-        notes: `Order rejected: ${rejectionReason}. Item marked as unavailable.`
-      }));
-      
-      const { error: rejectionTransactionError } = await supabase
-        .from('transactions')
-        .insert(rejectionTransactionData);
-      
-      if (rejectionTransactionError) {
-        console.error('Error creating rejection transaction records:', rejectionTransactionError);
-        throw rejectionTransactionError;
       }
       
       console.log(`Successfully marked ${serialIds.length} items as unavailable due to order rejection:`, serialIds);
@@ -318,7 +241,8 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
 };
 
 /**
- * Processes a refund by marking items as damaged and creating transaction records
+ * Processes a refund by marking items as damaged
+ * The database trigger will handle transaction logging
  */
 export const processRefund = async (orderId: string, adminUserId: string): Promise<{ success: boolean; error?: string }> => {
   try {
@@ -341,7 +265,7 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
     
     const serialIds = orderItems.map(item => item.item_serial);
     
-    // Update item status to damaged
+    // Update item status to damaged - the database trigger will handle transaction logging
     const { error: updateError } = await supabase
       .from('items')
       .update({ status: 'damaged' })
@@ -350,24 +274,6 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
     if (updateError) {
       console.error('Error updating item status to damaged:', updateError);
       throw updateError;
-    }
-    
-    // Create transaction records for refund with the correct admin user
-    const transactionData = serialIds.map(serialId => ({
-      item_serial: serialId,
-      user_id: adminUserId,
-      transaction_type: 'refund',
-      order_id: orderId,
-      notes: 'Item returned due to approved refund request - status set to damaged'
-    }));
-    
-    const { error: transactionError } = await supabase
-      .from('transactions')
-      .insert(transactionData);
-    
-    if (transactionError) {
-      console.error('Error creating refund transaction records:', transactionError);
-      throw transactionError;
     }
     
     console.log(`Successfully processed refund for ${serialIds.length} items - marked as damaged`);

@@ -28,9 +28,11 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
   };
 
   const getMovementTypeDisplay = (movement: InventoryMovement) => {
-    const transactionType = movement.reason.toLowerCase();
+    const reasonLower = movement.reason.toLowerCase();
+    const transactionType = reasonLower;
     
-    if (transactionType.includes('sale') || (movement.type === 'out' && transactionType.includes('sold'))) {
+    // Check for sale transactions
+    if (transactionType.includes('sale') || transactionType.includes('sold')) {
       return { 
         label: 'Sale', 
         color: 'bg-red-500', 
@@ -39,42 +41,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
       };
     }
     
-    if (transactionType.includes('refund')) {
-      return { 
-        label: 'Refund', 
-        color: 'bg-yellow-500', 
-        icon: RotateCcw,
-        description: 'Item returned due to refund'
-      };
-    }
-    
-    if (transactionType.includes('repair') || transactionType.includes('damaged')) {
-      return { 
-        label: 'Repair', 
-        color: 'bg-orange-500', 
-        icon: ArrowDown,
-        description: 'Item sent for repair'
-      };
-    }
-    
-    if (transactionType.includes('available') || transactionType.includes('restored')) {
-      return { 
-        label: 'Restored', 
-        color: 'bg-green-500', 
-        icon: ArrowDown,
-        description: 'Item restored to available status'
-      };
-    }
-    
-    if (transactionType.includes('damage')) {
-      return { 
-        label: 'Damage', 
-        color: 'bg-red-600', 
-        icon: ArrowDown,
-        description: 'Item marked as damaged'
-      };
-    }
-    
+    // Check for pending/reserved status
     if (transactionType.includes('pending') || transactionType.includes('reserved')) {
       return { 
         label: 'Reserved', 
@@ -84,6 +51,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
       };
     }
     
+    // Check for rejected/unavailable status
     if (transactionType.includes('rejected') || transactionType.includes('unavailable')) {
       return { 
         label: 'Rejected', 
@@ -93,6 +61,37 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
       };
     }
     
+    // Check for refund transactions
+    if (transactionType.includes('refund')) {
+      return { 
+        label: 'Refund', 
+        color: 'bg-yellow-500', 
+        icon: RotateCcw,
+        description: 'Item returned due to refund'
+      };
+    }
+    
+    // Check for repair/damage transactions
+    if (transactionType.includes('repair') || transactionType.includes('damaged')) {
+      return { 
+        label: 'Repair', 
+        color: 'bg-orange-500', 
+        icon: ArrowDown,
+        description: 'Item sent for repair or marked as damaged'
+      };
+    }
+    
+    // Check for available/restored status
+    if (transactionType.includes('available') || transactionType.includes('restored')) {
+      return { 
+        label: 'Restored', 
+        color: 'bg-green-500', 
+        icon: ArrowDown,
+        description: 'Item restored to available status'
+      };
+    }
+    
+    // Default fallback
     return { 
       label: movement.type === 'in' ? 'Entry' : 'Exit', 
       color: movement.type === 'in' ? 'bg-green-500' : 'bg-red-500',
@@ -170,10 +169,10 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {(movement as any).customerName ? (
+                        {movement.customerName && movement.customerName !== 'Unknown Customer' ? (
                           <div>
-                            <div className="font-medium">{(movement as any).customerName}</div>
-                            <div className="text-xs text-gray-500">{(movement as any).customerEmail}</div>
+                            <div className="font-medium">{movement.customerName}</div>
+                            <div className="text-xs text-gray-500">{movement.customerEmail}</div>
                           </div>
                         ) : (
                           'N/A'
