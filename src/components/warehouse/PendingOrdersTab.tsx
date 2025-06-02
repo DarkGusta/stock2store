@@ -1,16 +1,18 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/auth';
-import { CheckCircle, Clock, DollarSign, Package, User } from 'lucide-react';
+import { CheckCircle, Clock, DollarSign, Package, User, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { completeOrder } from '@/services/orders/orderProcessingService';
+import { completeOrder, rejectOrder } from '@/services/orders/orderProcessingService';
 
 interface PendingOrder {
   id: string;
@@ -39,6 +41,9 @@ const PendingOrdersTab: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [orderToReject, setOrderToReject] = useState<string | null>(null);
 
   const { data: pendingOrders = [], isLoading } = useQuery({
     queryKey: ['pending-orders'],
@@ -132,8 +137,56 @@ const PendingOrdersTab: React.FC = () => {
     },
   });
 
+  const rejectOrderMutation = useMutation({
+    mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      const result = await rejectOrder(orderId, reason, user.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to reject order');
+      }
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Order Rejected",
+        description: "The order has been rejected and items marked as unavailable.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['pending-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      setIsRejectDialogOpen(false);
+      setRejectionReason('');
+      setOrderToReject(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAcceptOrder = (orderId: string) => {
     acceptOrderMutation.mutate(orderId);
+  };
+
+  const handleRejectOrderClick = (orderId: string) => {
+    setOrderToReject(orderId);
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleRejectOrderConfirm = () => {
+    if (orderToReject && rejectionReason.trim()) {
+      rejectOrderMutation.mutate({ orderId: orderToReject, reason: rejectionReason.trim() });
+    } else {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -167,7 +220,7 @@ const PendingOrdersTab: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Pending Order Requests</h2>
           <p className="text-muted-foreground">
-            Review and accept customer orders to complete the fulfillment process.
+            Review and accept or reject customer orders to complete the fulfillment process.
           </p>
         </div>
         <Badge variant="secondary" className="text-lg px-3 py-1">
@@ -212,6 +265,14 @@ const PendingOrdersTab: React.FC = () => {
                     <CheckCircle className="h-4 w-4 mr-2" />
                     {acceptOrderMutation.isPending ? 'Processing...' : 'Accept Order'}
                   </Button>
+                  <Button
+                    onClick={() => handleRejectOrderClick(order.id)}
+                    disabled={rejectOrderMutation.isPending}
+                    variant="destructive"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Reject Order
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -252,6 +313,37 @@ const PendingOrdersTab: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Order</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this order. The items will be marked as unavailable.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Enter rejection reason..."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectOrderConfirm}
+              disabled={rejectOrderMutation.isPending || !rejectionReason.trim()}
+            >
+              {rejectOrderMutation.isPending ? 'Rejecting...' : 'Reject Order'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
