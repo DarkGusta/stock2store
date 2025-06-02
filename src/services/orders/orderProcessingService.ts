@@ -17,6 +17,7 @@ export interface OrderData {
 
 /**
  * Creates an order and updates inventory by marking items as pending
+ * NO transaction records are created at this stage - only when order is accepted/rejected
  */
 export const processOrder = async (orderData: OrderData): Promise<{ success: boolean; orderId?: string; error?: string }> => {
   console.log('Processing order:', orderData);
@@ -65,7 +66,7 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
       
       console.log('Inventory check:', inventoryCheck);
 
-      // Get available items for this product (must match inventory_id with the product ID)
+      // Get available items for this product
       const { data: availableItems, error: itemsError } = await supabase
         .from('items')
         .select('serial_id, inventory_id')
@@ -87,7 +88,7 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
       
       console.log('Available items to reserve for order:', availableItems);
       
-      // Mark items as pending (not sold yet, just reserved for this order)
+      // Mark items as pending (this will trigger inventory count update via database trigger)
       const serialIds = availableItems.map(item => item.serial_id);
       const { error: updateError } = await supabase
         .from('items')
@@ -117,7 +118,8 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
         throw orderItemsError;
       }
       
-      // Create transaction record for pending status (order placed)
+      // MANUALLY create transaction record for pending status (bypassing trigger)
+      // We need to manually insert this because we want to control when transactions are created
       const pendingTransactionData = serialIds.map(serialId => ({
         item_serial: serialId,
         user_id: orderData.userId,
@@ -149,7 +151,6 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
 
 /**
  * Completes an order by changing its status to completed and marking items as sold
- * NOTE: We don't create transaction records here as the database trigger handles that
  */
 export const completeOrder = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
   try {
@@ -180,7 +181,6 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
       const serialIds = orderItems.map(item => item.item_serial);
       
       // Mark items as sold (they were previously pending)
-      // The database trigger will handle creating the sale transaction records
       const { error: updateError } = await supabase
         .from('items')
         .update({ status: 'sold' })
@@ -191,7 +191,25 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
         throw updateError;
       }
       
-      console.log(`Successfully marked ${serialIds.length} items as sold:`, serialIds);
+      // MANUALLY create sale transaction records (bypassing automatic trigger)
+      const saleTransactionData = serialIds.map(serialId => ({
+        item_serial: serialId,
+        user_id: order.user_id, // Use the customer's user ID for the sale
+        transaction_type: 'sale',
+        order_id: orderId,
+        notes: `Item sold through order ${order.order_number}`
+      }));
+      
+      const { error: saleTransactionError } = await supabase
+        .from('transactions')
+        .insert(saleTransactionData);
+      
+      if (saleTransactionError) {
+        console.error('Error creating sale transaction records:', saleTransactionError);
+        throw saleTransactionError;
+      }
+      
+      console.log(`Successfully marked ${serialIds.length} items as sold and created sale transactions:`, serialIds);
     }
 
     // Update order status to completed
@@ -210,6 +228,91 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
     
   } catch (error) {
     console.error('Error completing order:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
+  }
+};
+
+/**
+ * Rejects an order by changing its status to rejected and marking items as unavailable
+ */
+export const rejectOrder = async (orderId: string, rejectionReason: string, adminUserId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log('Rejecting order:', orderId, 'Reason:', rejectionReason);
+    
+    // First get the order details
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, user_id, order_number')
+      .eq('id', orderId)
+      .single();
+    
+    if (orderError) {
+      console.error('Error fetching order:', orderError);
+      throw orderError;
+    }
+
+    // Get all order items for this order
+    const { data: orderItems, error: orderItemsError } = await supabase
+      .from('order_items')
+      .select('item_serial')
+      .eq('order_id', orderId);
+    
+    if (orderItemsError) {
+      console.error('Error fetching order items:', orderItemsError);
+      throw orderItemsError;
+    }
+
+    if (orderItems && orderItems.length > 0) {
+      const serialIds = orderItems.map(item => item.item_serial);
+      
+      // Mark items as unavailable (they were previously pending)
+      const { error: updateError } = await supabase
+        .from('items')
+        .update({ status: 'unavailable' })
+        .in('serial_id', serialIds);
+      
+      if (updateError) {
+        console.error('Error updating item status to unavailable:', updateError);
+        throw updateError;
+      }
+      
+      // Create transaction records for rejection
+      const rejectionTransactionData = serialIds.map(serialId => ({
+        item_serial: serialId,
+        user_id: adminUserId, // Admin who rejected the order
+        transaction_type: 'status_change',
+        order_id: orderId,
+        notes: `Order rejected: ${rejectionReason}. Item marked as unavailable.`
+      }));
+      
+      const { error: rejectionTransactionError } = await supabase
+        .from('transactions')
+        .insert(rejectionTransactionData);
+      
+      if (rejectionTransactionError) {
+        console.error('Error creating rejection transaction records:', rejectionTransactionError);
+        throw rejectionTransactionError;
+      }
+      
+      console.log(`Successfully marked ${serialIds.length} items as unavailable due to order rejection:`, serialIds);
+    }
+
+    // Update order status to rejected
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'rejected' })
+      .eq('id', orderId);
+    
+    if (error) {
+      console.error('Error rejecting order:', error);
+      throw error;
+    }
+    
+    console.log('Order rejected successfully:', orderId);
+    return { success: true };
+    
+  } catch (error) {
+    console.error('Error rejecting order:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
   }
 };
@@ -238,7 +341,7 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
     
     const serialIds = orderItems.map(item => item.item_serial);
     
-    // Update item status to damaged (not in_repair)
+    // Update item status to damaged
     const { error: updateError } = await supabase
       .from('items')
       .update({ status: 'damaged' })

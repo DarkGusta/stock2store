@@ -55,7 +55,7 @@ export interface Order {
   id: string;
   orderNumber: string;
   userId: string;
-  status: string;
+  status: 'pending' | 'completed' | 'rejected'; // Updated to include rejected status
   totalAmount: number;
   total?: number;  // Added for backward compatibility
   products: any[];

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowDown, ArrowUp, Package, RotateCcw, Clock } from 'lucide-react';
+import { ArrowDown, ArrowUp, Package, RotateCcw, Clock, Ban } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -30,7 +30,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
   const getMovementTypeDisplay = (movement: InventoryMovement) => {
     const transactionType = movement.reason.toLowerCase();
     
-    if (transactionType.includes('sale') || movement.type === 'out') {
+    if (transactionType.includes('sale') || (movement.type === 'out' && transactionType.includes('sold'))) {
       return { 
         label: 'Sale', 
         color: 'bg-red-500', 
@@ -81,6 +81,15 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
         color: 'bg-blue-500', 
         icon: Clock,
         description: 'Item reserved for pending order'
+      };
+    }
+    
+    if (transactionType.includes('rejected') || transactionType.includes('unavailable')) {
+      return { 
+        label: 'Rejected', 
+        color: 'bg-gray-500', 
+        icon: Ban,
+        description: 'Order rejected, item marked unavailable'
       };
     }
     
