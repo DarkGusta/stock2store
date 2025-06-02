@@ -99,7 +99,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
           <Package className="h-5 w-5" />
           Inventory Movements
         </CardTitle>
-        <CardDescription>Recent inventory transactions including sales, refunds, and status changes</CardDescription>
+        <CardDescription>Recent inventory transactions including sales, refunds, reservations, and status changes</CardDescription>
       </CardHeader>
       <CardContent>
         {movements.length === 0 ? (
@@ -117,6 +117,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
                   <TableHead>Serial ID</TableHead>
                   <TableHead>Quantity</TableHead>
                   <TableHead>Details</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>By</TableHead>
@@ -158,6 +159,16 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
                         <div className="truncate" title={movement.reason}>
                           {movement.reason}
                         </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {(movement as any).customerName ? (
+                          <div>
+                            <div className="font-medium">{(movement as any).customerName}</div>
+                            <div className="text-xs text-gray-500">{(movement as any).customerEmail}</div>
+                          </div>
+                        ) : (
+                          'N/A'
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
                         {movement.orderNumber ? (
