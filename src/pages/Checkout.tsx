@@ -9,7 +9,7 @@ import { ArrowLeft, Lock, CreditCard, User, MapPin } from 'lucide-react';
 import InvoiceForm from '@/components/checkout/InvoiceForm';
 import PaymentForm from '@/components/checkout/PaymentForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
-import { processOrder, completeOrder } from '@/services/orders/orderProcessingService';
+import { processOrder } from '@/services/orders/orderProcessingService';
 
 export interface InvoiceData {
   firstName: string;
@@ -95,7 +95,7 @@ const Checkout = () => {
         throw new Error('User not authenticated');
       }
 
-      // Process the order
+      // Process the order - this will create the order and mark items as pending
       const orderItems = items.map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
@@ -116,17 +116,12 @@ const Checkout = () => {
       // Simulate payment processing delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Complete the order (mark as delivered)
-      if (orderResult.orderId) {
-        const completeResult = await completeOrder(orderResult.orderId);
-        if (!completeResult.success) {
-          console.warn('Order created but failed to mark as delivered:', completeResult.error);
-        }
-      }
+      // DO NOT automatically complete the order - let warehouse staff accept it first
+      // The order will remain in 'pending' status and items will be marked as 'pending'
 
       toast({
         title: "Order placed successfully!",
-        description: `Your order has been confirmed. Order total: $${(total * 1.08).toFixed(2)}`,
+        description: `Your order has been submitted for review. Order total: $${(total * 1.08).toFixed(2)}`,
       });
 
       clearCart();
