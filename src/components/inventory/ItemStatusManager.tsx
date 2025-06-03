@@ -190,6 +190,8 @@ const ItemStatusManager = () => {
         return 'bg-red-100 text-red-800';
       case 'in_repair':
         return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-blue-500 text-blue-800';
       case 'unavailable':
         return 'bg-gray-100 text-gray-800';
       default:
@@ -255,6 +257,7 @@ const ItemStatusManager = () => {
                             <Badge variant="outline">Sold: {statusCounts.sold}</Badge>
                             <Badge variant="outline">Damaged: {statusCounts.damaged}</Badge>
                             <Badge variant="outline">In Repair: {statusCounts.in_repair}</Badge>
+                            <Badge variant="outline">Pending: {statusCounts.pending}</Badge>
                             <Badge variant="outline">Unavailable: {statusCounts.unavailable}</Badge>
                           </div>
                         </div>
@@ -295,6 +298,7 @@ const ItemStatusManager = () => {
                                   <SelectItem value="available">Available</SelectItem>
                                   <SelectItem value="damaged">Damaged</SelectItem>
                                   <SelectItem value="in_repair">In Repair</SelectItem>
+                                  <SelectItem value="pending">Pending</SelectItem>
                                   <SelectItem value="unavailable">Unavailable</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -358,6 +362,7 @@ const ItemStatusManager = () => {
                                     <SelectItem value="available">Available</SelectItem>
                                     <SelectItem value="damaged">Damaged</SelectItem>
                                     <SelectItem value="in_repair">In Repair</SelectItem>
+                                    <SelectItem value="pending">Pending</SelectItem>
                                     <SelectItem value="unavailable">Unavailable</SelectItem>
                                   </SelectContent>
                                 </Select>
