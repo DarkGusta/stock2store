@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface InventoryItem {
@@ -104,7 +103,7 @@ export const getDetailedInventory = async (): Promise<InventoryItem[]> => {
 };
 
 /**
- * Updates the status of a specific item with proper transaction logging
+ * Updates the status of a specific item - transaction logging is handled by database trigger
  */
 export const updateItemStatus = async (
   serialId: string, 
@@ -115,21 +114,7 @@ export const updateItemStatus = async (
   try {
     console.log(`Updating item ${serialId} status to ${newStatus} by user ${userId}`);
     
-    // Get current item status first
-    const { data: currentItem, error: fetchError } = await supabase
-      .from('items')
-      .select('status')
-      .eq('serial_id', serialId)
-      .single();
-    
-    if (fetchError) {
-      console.error('Error fetching current item status:', fetchError);
-      throw fetchError;
-    }
-    
-    const oldStatus = currentItem.status;
-    
-    // Update item status
+    // Update item status - the database trigger will handle transaction logging automatically
     const { error: updateError } = await supabase
       .from('items')
       .update({ status: newStatus })
@@ -140,25 +125,7 @@ export const updateItemStatus = async (
       throw updateError;
     }
     
-    // Create transaction record for the status change
-    const transactionType = getTransactionType(oldStatus, newStatus);
-    const notes = reason || `Manual status change from ${oldStatus} to ${newStatus}`;
-    
-    const { error: transactionError } = await supabase
-      .from('transactions')
-      .insert({
-        item_serial: serialId,
-        user_id: userId,
-        transaction_type: transactionType,
-        notes: notes
-      });
-    
-    if (transactionError) {
-      console.error('Error creating transaction record:', transactionError);
-      throw transactionError;
-    }
-    
-    console.log(`Successfully updated item ${serialId} to status ${newStatus} and logged transaction`);
+    console.log(`Successfully updated item ${serialId} to status ${newStatus} - transaction logged by trigger`);
     return true;
   } catch (error) {
     console.error('Error in updateItemStatus:', error);
