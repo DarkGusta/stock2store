@@ -185,11 +185,17 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
 
 /**
  * Rejects an order by changing its status to rejected and marking items as unavailable
- * The database trigger will handle transaction logging
+ * The database trigger will handle transaction logging with the correct warehouse user
  */
 export const rejectOrder = async (orderId: string, rejectionReason: string, adminUserId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     console.log('Rejecting order:', orderId, 'Reason:', rejectionReason, 'By user:', adminUserId);
+    
+    // Set the warehouse user ID in a session variable so the trigger can access it
+    const { error: sessionError } = await supabase.rpc('set_session_user', { user_id: adminUserId });
+    if (sessionError) {
+      console.warn('Could not set session user:', sessionError);
+    }
     
     // Get all order items for this order
     const { data: orderItems, error: orderItemsError } = await supabase
@@ -230,11 +236,16 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
       throw error;
     }
     
+    // Clear the session variable
+    await supabase.rpc('clear_session_user');
+    
     console.log('Order rejected successfully:', orderId);
     return { success: true };
     
   } catch (error) {
     console.error('Error rejecting order:', error);
+    // Make sure to clear session variable even on error
+    await supabase.rpc('clear_session_user');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
   }
 };
