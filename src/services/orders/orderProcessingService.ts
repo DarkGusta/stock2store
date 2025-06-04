@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
@@ -186,16 +185,23 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
 
 /**
  * Rejects an order by changing its status to rejected and marking items as unavailable
- * The database trigger will handle transaction logging
+ * Now properly creates manual transaction records with the correct user
  */
 export const rejectOrder = async (orderId: string, rejectionReason: string, adminUserId: string): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log('Rejecting order:', orderId, 'Reason:', rejectionReason);
+    console.log('Rejecting order:', orderId, 'Reason:', rejectionReason, 'By user:', adminUserId);
     
-    // Get all order items for this order
+    // Get all order items for this order along with order info
     const { data: orderItems, error: orderItemsError } = await supabase
       .from('order_items')
-      .select('item_serial')
+      .select(`
+        item_serial,
+        orders!inner (
+          id,
+          order_number,
+          user_id
+        )
+      `)
       .eq('order_id', orderId);
     
     if (orderItemsError) {
@@ -205,8 +211,9 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
 
     if (orderItems && orderItems.length > 0) {
       const serialIds = orderItems.map(item => item.item_serial);
+      const orderInfo = orderItems[0].orders;
       
-      // Mark items as unavailable - the database trigger will handle transaction logging
+      // Mark items as unavailable - but we'll create our own transaction records
       const { error: updateError } = await supabase
         .from('items')
         .update({ status: 'unavailable' })
@@ -218,6 +225,27 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
       }
       
       console.log(`Successfully marked ${serialIds.length} items as unavailable due to order rejection:`, serialIds);
+      
+      // Create manual transaction records with the correct user who rejected the order
+      const transactionRecords = serialIds.map(serialId => ({
+        item_serial: serialId,
+        user_id: adminUserId, // Use the actual user who rejected the order
+        transaction_type: 'status_change',
+        order_id: orderId,
+        notes: `Order ${orderInfo.order_number} rejected by warehouse staff. Reason: ${rejectionReason}`
+      }));
+      
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert(transactionRecords);
+      
+      if (transactionError) {
+        console.error('Error creating rejection transaction records:', transactionError);
+        // Don't throw here as the main operation succeeded
+        console.warn('Transaction logging failed but order rejection completed');
+      } else {
+        console.log(`Successfully created ${transactionRecords.length} transaction records for order rejection`);
+      }
     }
 
     // Update order status to rejected

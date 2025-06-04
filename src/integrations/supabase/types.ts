@@ -593,6 +593,10 @@ export type Database = {
         Args: { user_id: string; req_resource: string; req_action: string }
         Returns: boolean
       }
+      warehouse_can_view_profile: {
+        Args: { profile_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       damage_report_status: "completed" | "in_progess" | "received"
