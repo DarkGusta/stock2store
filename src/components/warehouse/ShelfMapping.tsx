@@ -95,7 +95,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
             stock: inventoryData.quantity,
             location: originalProduct?.location || '',
             price: originalProduct?.price || 0,
-            image: originalProduct?.image || '',
+            images: originalProduct?.images || [],
             createdAt: originalProduct?.createdAt || new Date(),
             updatedAt: originalProduct?.updatedAt || new Date(),
             itemStatuses: {
