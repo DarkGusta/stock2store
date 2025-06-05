@@ -101,8 +101,36 @@ const Warehouse = () => {
           transactionUserId: transaction.user_id,
           transactionUserProfile,
           orderUserId: transaction.orders?.user_id,
-          orderUserProfile
+          orderUserProfile,
+          transactionType: transaction.transaction_type,
+          notes: transaction.notes
         });
+        
+        // Determine who performed the action and who is the customer based on transaction type and context
+        let performedByUser, performedByName, performedByRole;
+        let customerUser, customerName, customerEmail;
+        
+        // For order-related transactions, the transaction user_id is who performed the action
+        // The order user_id is always the customer
+        if (transaction.orders?.user_id) {
+          // Customer is always the order user
+          customerUser = orderUserProfile;
+          customerName = orderUserProfile?.name || `User ${transaction.orders.user_id.slice(0, 8)}...`;
+          customerEmail = orderUserProfile?.email || 'No email';
+          
+          // Performed by is the transaction user (could be warehouse staff, system, or customer)
+          performedByUser = transactionUserProfile;
+          performedByName = transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System';
+          performedByRole = transactionUserProfile?.role || 'unknown';
+        } else {
+          // Non-order transactions (status changes, etc.)
+          performedByUser = transactionUserProfile;
+          performedByName = transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System';
+          performedByRole = transactionUserProfile?.role || 'unknown';
+          
+          customerName = 'N/A';
+          customerEmail = 'N/A';
+        }
         
         return {
           id: transaction.id,
@@ -111,15 +139,15 @@ const Warehouse = () => {
           quantity: 1, // Each transaction is for one item
           type: transaction.transaction_type === 'sale' ? 'out' : 'in',
           reason: transaction.notes || transaction.transaction_type,
-          performedBy: transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System',
+          performedBy: performedByName,
           timestamp: new Date(transaction.created_at),
           userId: transaction.user_id,
-          userName: transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'Unknown',
-          userRole: transactionUserProfile?.role || 'unknown',
+          userName: performedByName,
+          userRole: performedByRole,
           serialId: transaction.item_serial,
           orderNumber: transaction.orders?.order_number,
-          customerName: orderUserProfile?.name || (transaction.orders?.user_id ? `User ${transaction.orders.user_id.slice(0, 8)}...` : 'Unknown Customer'),
-          customerEmail: orderUserProfile?.email || 'No email'
+          customerName: customerName,
+          customerEmail: customerEmail
         };
       }) as InventoryMovement[];
 
