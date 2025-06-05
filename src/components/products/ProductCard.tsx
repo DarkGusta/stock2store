@@ -36,12 +36,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const stockStatus = getStockStatus(product.stock);
 
+  // Get the first image from images array or fall back to image property
+  const productImage = product.images?.[0] || product.image;
+
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow duration-200 h-full flex flex-col">
       <div className="relative h-48 bg-gray-100">
-        {product.image ? (
+        {productImage ? (
           <img 
-            src={product.image} 
+            src={productImage} 
             alt={product.name} 
             className="object-cover w-full h-full"
           />
