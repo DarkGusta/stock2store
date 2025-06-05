@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -7,6 +8,10 @@ export interface Product {
   category: string;
   images: string[];
   location?: string;
+  image?: string; // Keep for backward compatibility
+  barcode?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Order {
@@ -16,6 +21,9 @@ export interface Order {
   totalAmount: number;
   orderDate: Date;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  orderNumber?: string;
+  createdAt?: Date;
+  products?: any[]; // Keep for backward compatibility
 }
 
 export interface OrderItem {
@@ -25,11 +33,13 @@ export interface OrderItem {
   name: string;
 }
 
+export type UserRole = 'customer' | 'admin' | 'warehouse' | 'analyst';
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'customer' | 'admin' | 'warehouse';
+  role: UserRole;
   avatar: string;
   createdAt: Date;
   updatedAt: Date;
@@ -56,4 +66,13 @@ export interface InventoryMovement {
   orderNumber?: string;
   customerName?: string;
   customerEmail?: string;
+}
+
+export interface DashboardStats {
+  totalProducts: number;
+  totalStock: number;
+  lowStockProducts: number;
+  ordersPending: number;
+  totalSales: number;
+  monthlyRevenue: number[];
 }

@@ -80,10 +80,9 @@ export const getProducts = async (): Promise<Product[]> => {
         description: item.description || '',
         price: price,
         stock: item.quantity || 0,
-        image: '',
+        images: [],
         category: categoryName,
         location: '',
-        barcode: '',
         createdAt: new Date(item.created_at || Date.now()),
         updatedAt: new Date(item.updated_at || Date.now())
       };
@@ -175,10 +174,9 @@ export const getProductsAlternative = async (): Promise<Product[]> => {
         description: item.description || '',
         price: price,
         stock: item.quantity || 0,
-        image: '',
+        images: [],
         category: categoryName,
         location: '',
-        barcode: '',
         createdAt: new Date(item.created_at || Date.now()),
         updatedAt: new Date(item.updated_at || Date.now())
       };
@@ -281,10 +279,9 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
       description: inventoryItem.description || '',
       price: product.price || 0,
       stock: inventoryItem.quantity,
-      image: '',
+      images: [],
       category: product.category || 'Uncategorized',
       location: '',
-      barcode: product.barcode || '',
       createdAt: new Date(inventoryItem.created_at),
       updatedAt: new Date(inventoryItem.updated_at)
     };
