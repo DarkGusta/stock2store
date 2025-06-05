@@ -92,30 +92,27 @@ export const useWarehouseData = () => {
           notes: transaction.notes
         });
         
-        // Determine who performed the action and who is the customer based on transaction type and context
-        let performedByUser, performedByName, performedByRole;
-        let customerUser, customerName, customerEmail;
+        // The transaction user_id is ALWAYS who performed the action
+        const performedByUser = transactionUserProfile;
+        const performedByName = performedByUser?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System';
+        const performedByRole = performedByUser?.role || 'unknown';
         
-        // For order-related transactions, the transaction user_id is who performed the action
-        // The order user_id is always the customer
-        if (transaction.orders?.user_id) {
-          // Customer is always the order user
-          customerUser = orderUserProfile;
-          customerName = orderUserProfile?.name || `User ${transaction.orders.user_id.slice(0, 8)}...`;
-          customerEmail = orderUserProfile?.email || 'No email';
-          
-          // Performed by is the transaction user (could be warehouse staff, system, or customer)
-          performedByUser = transactionUserProfile;
-          performedByName = transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System';
-          performedByRole = transactionUserProfile?.role || 'unknown';
-        } else {
-          // Non-order transactions (status changes, etc.)
-          performedByUser = transactionUserProfile;
-          performedByName = transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System';
-          performedByRole = transactionUserProfile?.role || 'unknown';
-          
-          customerName = 'N/A';
-          customerEmail = 'N/A';
+        // For order-related transactions, the order user is the customer
+        // For non-order transactions, there might not be a customer
+        let customerName = 'N/A';
+        let customerEmail = 'N/A';
+        
+        if (transaction.orders?.user_id && orderUserProfile) {
+          // Only set customer info if this is an order-related transaction
+          // and the order user is different from the transaction user
+          if (transaction.orders.user_id !== transaction.user_id) {
+            customerName = orderUserProfile.name || `User ${transaction.orders.user_id.slice(0, 8)}...`;
+            customerEmail = orderUserProfile.email || 'No email';
+          } else {
+            // If the same user performed the action and is the customer (self-service)
+            customerName = performedByName;
+            customerEmail = performedByUser?.email || 'No email';
+          }
         }
         
         return {
