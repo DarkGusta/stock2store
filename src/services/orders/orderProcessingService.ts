@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
@@ -192,7 +193,7 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
     console.log('Rejecting order:', orderId, 'Reason:', rejectionReason, 'By user:', adminUserId);
     
     // Set the warehouse user ID in a session variable so the trigger can access it
-    const { error: sessionError } = await supabase.rpc('set_session_user', { user_id: adminUserId });
+    const { error: sessionError } = await (supabase.rpc as any)('set_session_user', { user_id: adminUserId });
     if (sessionError) {
       console.warn('Could not set session user:', sessionError);
     }
@@ -237,7 +238,7 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
     }
     
     // Clear the session variable
-    await supabase.rpc('clear_session_user');
+    await (supabase.rpc as any)('clear_session_user');
     
     console.log('Order rejected successfully:', orderId);
     return { success: true };
@@ -245,7 +246,7 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
   } catch (error) {
     console.error('Error rejecting order:', error);
     // Make sure to clear session variable even on error
-    await supabase.rpc('clear_session_user');
+    await (supabase.rpc as any)('clear_session_user');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
   }
 };
