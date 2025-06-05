@@ -190,7 +190,12 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="text-gray-500 text-sm">
-                        {movement.userName || 'System'}
+                        <div>
+                          <div className="font-medium">{movement.userName || 'System'}</div>
+                          {(movement as any).userRole && (movement as any).userRole !== 'unknown' && (
+                            <div className="text-xs text-gray-400 capitalize">{(movement as any).userRole}</div>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

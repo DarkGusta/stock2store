@@ -28,10 +28,12 @@ const Warehouse = () => {
     queryFn: getProducts,
   });
 
-  // Fetch inventory movements (transactions) with proper user profile access
+  // Fetch inventory movements (transactions) with improved user profile handling
   const { data: inventoryMovements = [] } = useQuery({
     queryKey: ['inventory-movements'],
     queryFn: async () => {
+      console.log('Fetching inventory movements...');
+      
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -50,37 +52,57 @@ const Warehouse = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        throw error;
+      }
+
+      console.log('Raw transactions data:', data);
 
       // Get all unique user IDs from transactions and orders
-      const userIds = [...new Set([
-        ...data.map(t => t.user_id),
-        ...data.filter(t => t.orders?.user_id).map(t => t.orders.user_id)
-      ])].filter(Boolean);
+      const transactionUserIds = data.map(t => t.user_id).filter(Boolean);
+      const orderUserIds = data.filter(t => t.orders?.user_id).map(t => t.orders.user_id).filter(Boolean);
+      const allUserIds = [...new Set([...transactionUserIds, ...orderUserIds])];
+      
+      console.log('All user IDs to fetch profiles for:', allUserIds);
 
-      // Fetch user profiles separately with error handling
+      // Fetch user profiles separately with better error handling
       let profilesMap = new Map();
-      if (userIds.length > 0) {
+      if (allUserIds.length > 0) {
         try {
-          const { data: profiles } = await supabase
+          console.log('Fetching profiles for user IDs:', allUserIds);
+          const { data: profiles, error: profileError } = await supabase
             .from('profiles')
-            .select('id, name, email')
-            .in('id', userIds);
+            .select('id, name, email, role')
+            .in('id', allUserIds);
           
-          if (profiles) {
-            profiles.forEach(profile => {
-              profilesMap.set(profile.id, profile);
-            });
+          if (profileError) {
+            console.error('Error fetching profiles:', profileError);
+          } else {
+            console.log('Fetched profiles:', profiles);
+            if (profiles) {
+              profiles.forEach(profile => {
+                profilesMap.set(profile.id, profile);
+              });
+            }
           }
         } catch (profileError) {
-          console.warn('Could not fetch some user profiles:', profileError);
-          // Continue without profile data rather than failing
+          console.warn('Could not fetch user profiles:', profileError);
         }
       }
 
-      return data.map((transaction: any) => {
+      console.log('Profiles map:', Object.fromEntries(profilesMap));
+
+      const movements = data.map((transaction: any) => {
         const transactionUserProfile = profilesMap.get(transaction.user_id);
         const orderUserProfile = transaction.orders?.user_id ? profilesMap.get(transaction.orders.user_id) : null;
+        
+        console.log(`Transaction ${transaction.id}:`, {
+          transactionUserId: transaction.user_id,
+          transactionUserProfile,
+          orderUserId: transaction.orders?.user_id,
+          orderUserProfile
+        });
         
         return {
           id: transaction.id,
@@ -89,16 +111,20 @@ const Warehouse = () => {
           quantity: 1, // Each transaction is for one item
           type: transaction.transaction_type === 'sale' ? 'out' : 'in',
           reason: transaction.notes || transaction.transaction_type,
-          performedBy: transactionUserProfile?.name || 'System',
+          performedBy: transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System',
           timestamp: new Date(transaction.created_at),
           userId: transaction.user_id,
-          userName: transactionUserProfile?.name || 'Unknown',
+          userName: transactionUserProfile?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'Unknown',
+          userRole: transactionUserProfile?.role || 'unknown',
           serialId: transaction.item_serial,
           orderNumber: transaction.orders?.order_number,
-          customerName: orderUserProfile?.name || 'Unknown Customer',
+          customerName: orderUserProfile?.name || (transaction.orders?.user_id ? `User ${transaction.orders.user_id.slice(0, 8)}...` : 'Unknown Customer'),
           customerEmail: orderUserProfile?.email || 'No email'
         };
       }) as InventoryMovement[];
+
+      console.log('Final movements data:', movements);
+      return movements;
     },
   });
 
