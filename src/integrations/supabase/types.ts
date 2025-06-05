@@ -581,6 +581,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_session_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: string
@@ -588,6 +592,10 @@ export type Database = {
       is_admin_or_warehouse: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      set_session_user: {
+        Args: { user_id: string }
+        Returns: undefined
       }
       user_has_permission: {
         Args: { user_id: string; req_resource: string; req_action: string }
