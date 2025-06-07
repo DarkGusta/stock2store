@@ -100,6 +100,7 @@ export type Database = {
           created_at: string | null
           inventory_id: string
           location_id: string | null
+          performed_by_user_id: string | null
           price_id: string | null
           serial_id: string
           status: Database["public"]["Enums"]["item_status"]
@@ -109,6 +110,7 @@ export type Database = {
           created_at?: string | null
           inventory_id: string
           location_id?: string | null
+          performed_by_user_id?: string | null
           price_id?: string | null
           serial_id: string
           status?: Database["public"]["Enums"]["item_status"]
@@ -118,6 +120,7 @@ export type Database = {
           created_at?: string | null
           inventory_id?: string
           location_id?: string | null
+          performed_by_user_id?: string | null
           price_id?: string | null
           serial_id?: string
           status?: Database["public"]["Enums"]["item_status"]

@@ -136,6 +136,10 @@ export const processOrder = async (orderData: OrderData): Promise<{ success: boo
  */
 export const completeOrder = async (orderId: string): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Get current user for context
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user?.id;
+
     // Get all order items for this order
     const { data: orderItems, error: orderItemsError } = await supabase
       .from('order_items')
@@ -150,10 +154,13 @@ export const completeOrder = async (orderId: string): Promise<{ success: boolean
     if (orderItems && orderItems.length > 0) {
       const serialIds = orderItems.map(item => item.item_serial);
       
-      // Mark items as sold - the database trigger will handle transaction logging
+      // Set the performed_by_user_id and mark items as sold
       const { error: updateError } = await supabase
         .from('items')
-        .update({ status: 'sold' })
+        .update({ 
+          status: 'sold',
+          performed_by_user_id: currentUserId
+        })
         .in('serial_id', serialIds);
       
       if (updateError) {
@@ -192,12 +199,6 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
   try {
     console.log('Rejecting order:', orderId, 'Reason:', rejectionReason, 'By user:', adminUserId);
     
-    // Set the warehouse user ID in a session variable so the trigger can access it
-    const { error: sessionError } = await (supabase.rpc as any)('set_session_user', { user_id: adminUserId });
-    if (sessionError) {
-      console.warn('Could not set session user:', sessionError);
-    }
-    
     // Get all order items for this order
     const { data: orderItems, error: orderItemsError } = await supabase
       .from('order_items')
@@ -212,10 +213,13 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
     if (orderItems && orderItems.length > 0) {
       const serialIds = orderItems.map(item => item.item_serial);
       
-      // Mark items as unavailable - the database trigger will handle transaction logging
+      // Set the performed_by_user_id and mark items as unavailable
       const { error: updateError } = await supabase
         .from('items')
-        .update({ status: 'unavailable' })
+        .update({ 
+          status: 'unavailable',
+          performed_by_user_id: adminUserId
+        })
         .in('serial_id', serialIds);
       
       if (updateError) {
@@ -237,16 +241,11 @@ export const rejectOrder = async (orderId: string, rejectionReason: string, admi
       throw error;
     }
     
-    // Clear the session variable
-    await (supabase.rpc as any)('clear_session_user');
-    
     console.log('Order rejected successfully:', orderId);
     return { success: true };
     
   } catch (error) {
     console.error('Error rejecting order:', error);
-    // Make sure to clear session variable even on error
-    await (supabase.rpc as any)('clear_session_user');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
   }
 };
@@ -276,10 +275,13 @@ export const processRefund = async (orderId: string, adminUserId: string): Promi
     
     const serialIds = orderItems.map(item => item.item_serial);
     
-    // Update item status to damaged - the database trigger will handle transaction logging
+    // Set the performed_by_user_id and update item status to damaged
     const { error: updateError } = await supabase
       .from('items')
-      .update({ status: 'damaged' })
+      .update({ 
+        status: 'damaged',
+        performed_by_user_id: adminUserId
+      })
       .in('serial_id', serialIds);
     
     if (updateError) {

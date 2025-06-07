@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface InventoryItem {
@@ -114,10 +115,13 @@ export const updateItemStatus = async (
   try {
     console.log(`Updating item ${serialId} status to ${newStatus} by user ${userId}`);
     
-    // Update item status - the database trigger will handle transaction logging automatically
+    // Update item status with performed_by_user_id - the database trigger will handle transaction logging automatically
     const { error: updateError } = await supabase
       .from('items')
-      .update({ status: newStatus })
+      .update({ 
+        status: newStatus,
+        performed_by_user_id: userId
+      })
       .eq('serial_id', serialId);
     
     if (updateError) {
