@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Menu, Bell, Search } from 'lucide-react';
+import { Menu, Bell, Search, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
 import { User } from '@/types';
+import { useTheme } from '@/context/ThemeContext';
 
 interface HeaderProps {
   user: User;
@@ -21,6 +22,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, onSignOut }) => {
+  const { isDark, toggleTheme } = useTheme();
+
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 w-full">
       <div className="w-full flex justify-between items-center h-16 px-4 md:px-6">
@@ -48,6 +51,15 @@ const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, onSignOut }) => {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="text-gray-500 dark:text-gray-400">
             <Bell size={20} />
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleTheme}
+            className="text-gray-500 dark:text-gray-400"
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </Button>
           
           <DropdownMenu>
