@@ -6,44 +6,67 @@ interface AnimatedEyeProps {
 }
 
 const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
-  const [phase, setPhase] = useState<'eyes' | 'looking' | 'line' | 'expanding'>('eyes');
+  const [phase, setPhase] = useState<'eyes' | 'looking-left' | 'looking-right' | 'collapsing' | 'line' | 'expanding'>('eyes');
 
   useEffect(() => {
     const timer1 = setTimeout(() => {
-      setPhase('looking');
+      setPhase('looking-left');
     }, 500);
 
     const timer2 = setTimeout(() => {
-      setPhase('line');
-    }, 2000);
+      setPhase('looking-right');
+    }, 1200);
 
     const timer3 = setTimeout(() => {
-      setPhase('expanding');
-    }, 2500);
+      setPhase('collapsing');
+    }, 1900);
 
     const timer4 = setTimeout(() => {
+      setPhase('line');
+    }, 2400);
+
+    const timer5 = setTimeout(() => {
+      setPhase('expanding');
+    }, 2600);
+
+    const timer6 = setTimeout(() => {
       onAnimationComplete();
-    }, 3000);
+    }, 3100);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
       clearTimeout(timer4);
+      clearTimeout(timer5);
+      clearTimeout(timer6);
     };
   }, [onAnimationComplete]);
 
   const getEyePosition = () => {
-    if (phase === 'looking') {
+    if (phase === 'looking-left') {
+      return '-translate-x-1';
+    }
+    if (phase === 'looking-right') {
       return 'translate-x-1';
     }
     return 'translate-x-0';
   };
 
-  if (phase === 'eyes' || phase === 'looking') {
+  const getFaceTransform = () => {
+    if (phase === 'collapsing') {
+      return 'scale-x-0 scale-y-100';
+    }
+    if (phase === 'line') {
+      return 'scale-x-0 scale-y-100';
+    }
+    return 'scale-x-100 scale-y-100';
+  };
+
+  if (phase === 'eyes' || phase === 'looking-left' || phase === 'looking-right' || phase === 'collapsing') {
     return (
       <div className="flex items-center justify-center">
-        <div className="relative w-20 h-20 bg-white dark:bg-gray-800 rounded-full border-4 border-blue-500 flex items-center justify-center transition-all duration-500">
+        <div className={`relative w-20 h-20 bg-white dark:bg-gray-800 rounded-full border-4 border-blue-500 flex items-center justify-center transition-all duration-500 origin-center ${getFaceTransform()}`}>
           {/* Left Eye */}
           <div className="absolute left-3 top-6">
             <div className="w-4 h-4 bg-gray-800 dark:bg-white rounded-full relative">
@@ -76,7 +99,7 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
   if (phase === 'expanding') {
     return (
       <div className="flex items-center justify-center">
-        <div className="w-80 h-1 bg-blue-500 animate-pulse"></div>
+        <div className="w-80 h-1 bg-blue-500 animate-pulse transition-all duration-500"></div>
       </div>
     );
   }
