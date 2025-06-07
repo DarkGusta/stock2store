@@ -97,22 +97,19 @@ export const useWarehouseData = () => {
         const performedByName = performedByUser?.name || `User ${transaction.user_id?.slice(0, 8)}...` || 'System';
         const performedByRole = performedByUser?.role || 'unknown';
         
-        // For order-related transactions, the order user is the customer
-        // For non-order transactions, there might not be a customer
+        // For customer display: ALWAYS use the order customer if there's an order
+        // This ensures rejected orders show the correct customer who placed the order
         let customerName = 'N/A';
         let customerEmail = 'N/A';
         
         if (transaction.orders?.user_id && orderUserProfile) {
-          // Only set customer info if this is an order-related transaction
-          // and the order user is different from the transaction user
-          if (transaction.orders.user_id !== transaction.user_id) {
-            customerName = orderUserProfile.name || `User ${transaction.orders.user_id.slice(0, 8)}...`;
-            customerEmail = orderUserProfile.email || 'No email';
-          } else {
-            // If the same user performed the action and is the customer (self-service)
-            customerName = performedByName;
-            customerEmail = performedByUser?.email || 'No email';
-          }
+          // If there's an order, ALWAYS show the order customer (regardless of who performed the action)
+          customerName = orderUserProfile.name || `User ${transaction.orders.user_id.slice(0, 8)}...`;
+          customerEmail = orderUserProfile.email || 'No email';
+        } else if (!transaction.orders && transaction.user_id === transaction.user_id) {
+          // For non-order transactions where the user is both performer and subject
+          customerName = performedByName;
+          customerEmail = performedByUser?.email || 'No email';
         }
         
         return {
