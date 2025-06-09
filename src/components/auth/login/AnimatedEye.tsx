@@ -23,11 +23,11 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
 
     const timer4 = setTimeout(() => {
       setPhase('line');
-    }, 2400);
+    }, 4000);
 
     const timer5 = setTimeout(() => {
       setPhase('expanding');
-    }, 2600);
+    }, 3000);
 
     const timer6 = setTimeout(() => {
       setPhase('modal');
