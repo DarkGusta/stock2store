@@ -53,7 +53,8 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
       return 'scale-y-0';
     }
     if (phase === 'expanding-modal') {
-      return 'scale-x-[30] scale-y-[30]';
+      // Scale to approximately match modal size (448px width / 80px circle = ~5.6x)
+      return 'scale-x-[5.6] scale-y-[5.6]';
     }
     return 'scale-x-100 scale-y-100';
   };
