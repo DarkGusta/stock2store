@@ -6,7 +6,7 @@ interface AnimatedEyeProps {
 }
 
 const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
-  const [phase, setPhase] = useState<'eyes' | 'looking-left' | 'looking-right' | 'expanding-modal'>('eyes');
+  const [phase, setPhase] = useState<'eyes' | 'looking-left' | 'looking-right' | 'collapsing' | 'expanding-modal'>('eyes');
 
   useEffect(() => {
     const timer1 = setTimeout(() => {
@@ -18,18 +18,23 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
     }, 1200);
 
     const timer3 = setTimeout(() => {
-      setPhase('expanding-modal');
+      setPhase('collapsing');
     }, 1900);
 
     const timer4 = setTimeout(() => {
+      setPhase('expanding-modal');
+    }, 2400);
+
+    const timer5 = setTimeout(() => {
       onAnimationComplete();
-    }, 3900);
+    }, 4400);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
       clearTimeout(timer4);
+      clearTimeout(timer5);
     };
   }, [onAnimationComplete]);
 
@@ -44,13 +49,19 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
   };
 
   const getTransform = () => {
+    if (phase === 'collapsing') {
+      return 'scale-y-0';
+    }
     if (phase === 'expanding-modal') {
-      return 'scale-x-2000 scale-y-2000';
+      return 'scale-x-[30] scale-y-[30]';
     }
     return 'scale-x-100 scale-y-100';
   };
 
   const getDuration = () => {
+    if (phase === 'collapsing') {
+      return 'duration-500';
+    }
     if (phase === 'expanding-modal') {
       return 'duration-2000';
     }
@@ -59,8 +70,8 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
 
   return (
     <div className="flex items-center justify-center">
-      <div className={`relative w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full border-4 border-blue-500 flex items-center justify-center transition-all ${getDuration()} ease-out origin-center ${getTransform()}`}>
-        {phase !== 'expanding-modal' && (
+      <div className={`relative w-20 h-20 bg-white dark:bg-gray-800 rounded-full border-4 border-blue-500 flex items-center justify-center transition-all ${getDuration()} ease-out origin-center ${getTransform()}`}>
+        {(phase === 'eyes' || phase === 'looking-left' || phase === 'looking-right') && (
           <>
             {/* Left Eye */}
             <div className="absolute left-3 top-6">
@@ -79,11 +90,6 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
               <div className="w-6 h-3 border-b-2 border-gray-800 dark:border-white rounded-b-full"></div>
             </div>
           </>
-        )}
-        {phase === 'expanding-modal' && (
-          <div className="text-white font-semibold opacity-0 animate-fade-in animation-delay-1000">
-            Stock2Store
-          </div>
         )}
       </div>
     </div>
