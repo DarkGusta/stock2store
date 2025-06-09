@@ -63,7 +63,7 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
       return 'duration-500';
     }
     if (phase === 'expanding-modal') {
-      return 'duration-2000';
+      return 'duration-1000';
     }
     return 'duration-300';
   };
@@ -75,19 +75,19 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
           <>
             {/* Left Eye */}
             <div className="absolute left-3 top-6">
-              <div className="w-4 h-4 bg-gray-800 dark:bg-white rounded-full relative">
+              <div className="w-4 h-4 bg-gray-100 dark:bg-white rounded-full relative">
                 <div className={`w-2 h-2 bg-blue-500 rounded-full absolute top-1 left-1 transition-transform duration-300 ${getEyePosition()}`}></div>
               </div>
             </div>
             {/* Right Eye */}
             <div className="absolute right-3 top-6">
-              <div className="w-4 h-4 bg-gray-800 dark:bg-white rounded-full relative">
+              <div className="w-4 h-4 bg-gray-100 dark:bg-white rounded-full relative">
                 <div className={`w-2 h-2 bg-blue-500 rounded-full absolute top-1 left-1 transition-transform duration-300 ${getEyePosition()}`}></div>
               </div>
             </div>
             {/* Mouth */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-              <div className="w-6 h-3 border-b-2 border-gray-800 dark:border-white rounded-b-full"></div>
+              <div className="w-6 h-3 border-b-2 border-blue-500 dark:border-white rounded-b-full"></div>
             </div>
           </>
         )}
