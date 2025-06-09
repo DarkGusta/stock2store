@@ -6,7 +6,7 @@ interface AnimatedEyeProps {
 }
 
 const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
-  const [phase, setPhase] = useState<'eyes' | 'looking-left' | 'looking-right' | 'collapsing' | 'line' | 'expanding'>('eyes');
+  const [phase, setPhase] = useState<'eyes' | 'looking-left' | 'looking-right' | 'collapsing' | 'line' | 'expanding' | 'modal'>('eyes');
 
   useEffect(() => {
     const timer1 = setTimeout(() => {
@@ -30,8 +30,12 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
     }, 2600);
 
     const timer6 = setTimeout(() => {
-      onAnimationComplete();
+      setPhase('modal');
     }, 3100);
+
+    const timer7 = setTimeout(() => {
+      onAnimationComplete();
+    }, 3600);
 
     return () => {
       clearTimeout(timer1);
@@ -40,6 +44,7 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
       clearTimeout(timer4);
       clearTimeout(timer5);
       clearTimeout(timer6);
+      clearTimeout(timer7);
     };
   }, [onAnimationComplete]);
 
@@ -61,6 +66,16 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
       return 'scale-x-0 scale-y-100';
     }
     return 'scale-x-100 scale-y-100';
+  };
+
+  const getExpandingDimensions = () => {
+    if (phase === 'expanding') {
+      return 'w-96 h-32';
+    }
+    if (phase === 'modal') {
+      return 'w-96 h-96';
+    }
+    return 'w-80 h-1';
   };
 
   if (phase === 'eyes' || phase === 'looking-left' || phase === 'looking-right' || phase === 'collapsing') {
@@ -96,10 +111,16 @@ const AnimatedEye: React.FC<AnimatedEyeProps> = ({ onAnimationComplete }) => {
     );
   }
 
-  if (phase === 'expanding') {
+  if (phase === 'expanding' || phase === 'modal') {
     return (
       <div className="flex items-center justify-center">
-        <div className="w-80 h-1 bg-blue-500 animate-pulse transition-all duration-500"></div>
+        <div className={`${getExpandingDimensions()} bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ease-out ${phase === 'modal' ? 'rounded-lg' : 'rounded-sm'} flex items-center justify-center`}>
+          {phase === 'modal' && (
+            <div className="text-white font-semibold opacity-0 animate-fade-in animation-delay-300">
+              Stock2Store
+            </div>
+          )}
+        </div>
       </div>
     );
   }
