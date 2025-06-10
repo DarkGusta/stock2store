@@ -5,3 +5,4 @@ export * from './auth/authCore';
 export * from './auth/userProfileService';
 export * from './dashboard/statsService';
 export * from './orders/orderService';
+export * from './analytics/analyticsService';
