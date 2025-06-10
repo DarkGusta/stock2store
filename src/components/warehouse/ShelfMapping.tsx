@@ -303,9 +303,9 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="bg-card dark:bg-card border-border dark:border-border">
         <CardHeader>
-          <CardTitle>Shelf Mapping</CardTitle>
+          <CardTitle className="text-card-foreground">Shelf Mapping</CardTitle>
           <CardDescription>Loading shelf layout...</CardDescription>
         </CardHeader>
         <CardContent>
@@ -320,9 +320,9 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
   const shelfProducts = getProductsForShelf(selectedShelf);
 
   return (
-    <Card>
+    <Card className="bg-card dark:bg-card border-border dark:border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-card-foreground">
           <Move className="h-5 w-5" />
           Warehouse Shelf Mapping
         </CardTitle>
@@ -346,10 +346,10 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         </div>
 
         {/* Shelf Layout */}
-        <div className="border-2 border-gray-300 rounded-lg p-6 bg-gray-50">
+        <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800/30">
           <div className="text-center mb-4">
-            <h3 className="text-lg font-semibold">Shelf {selectedShelf}</h3>
-            <p className="text-sm text-gray-600">3 rows × 4 columns (drag products to move all items together)</p>
+            <h3 className="text-lg font-semibold text-foreground">Shelf {selectedShelf}</h3>
+            <p className="text-sm text-muted-foreground">3 rows × 4 columns (drag products to move all items together)</p>
           </div>
           
           <div className="grid grid-cols-4 gap-4 max-w-4xl mx-auto">
@@ -367,15 +367,15 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
                   className={`
                     border-2 rounded-lg p-3 h-32 flex flex-col justify-between transition-colors
                     ${productInSlot 
-                      ? 'border-blue-300 bg-blue-50 cursor-move' 
-                      : 'border-gray-200 bg-white border-dashed'
+                      ? 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 cursor-move' 
+                      : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700/30 border-dashed'
                     }
-                    ${draggedProduct ? 'hover:border-green-400 hover:bg-green-50' : ''}
+                    ${draggedProduct ? 'hover:border-green-400 hover:bg-green-50 dark:hover:border-green-500 dark:hover:bg-green-900/20' : ''}
                   `}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, selectedShelf, index)}
                 >
-                  <div className="text-xs font-mono text-gray-500 text-center">
+                  <div className="text-xs font-mono text-muted-foreground text-center">
                     {slotNumber}
                   </div>
                   
@@ -386,10 +386,10 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
                       onDragStart={(e) => handleDragStart(e, productInSlot.product)}
                     >
                       <div className="text-center">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {productInSlot.product.name}
                         </p>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {productInSlot.itemCount} items
                         </p>
                         
@@ -398,13 +398,13 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
                           {productInSlot.product.itemStatuses.available > 0 && (
                             <div className="flex items-center gap-1">
                               <Package className="h-3 w-3 text-green-600" />
-                              <span className="text-xs">{productInSlot.product.itemStatuses.available}</span>
+                              <span className="text-xs text-foreground">{productInSlot.product.itemStatuses.available}</span>
                             </div>
                           )}
                           {productInSlot.product.itemStatuses.damaged > 0 && (
                             <div className="flex items-center gap-1">
                               <AlertTriangle className="h-3 w-3 text-red-600" />
-                              <span className="text-xs">{productInSlot.product.itemStatuses.damaged}</span>
+                              <span className="text-xs text-foreground">{productInSlot.product.itemStatuses.damaged}</span>
                             </div>
                           )}
                         </div>
@@ -417,7 +417,7 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
                     </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center">
-                      <div className="text-gray-400 text-center">
+                      <div className="text-muted-foreground text-center">
                         <Package className="h-6 w-6 mx-auto mb-1 opacity-50" />
                         <p className="text-xs">Empty</p>
                       </div>
@@ -430,35 +430,35 @@ const ShelfMapping: React.FC<ShelfMappingProps> = ({ products, onProductSelect }
         </div>
 
         {/* Legend */}
-        <div className="bg-white p-4 rounded-lg border">
-          <h4 className="font-medium mb-3">Status Legend & Instructions</h4>
+        <div className="bg-white dark:bg-gray-800/50 p-4 rounded-lg border border-border">
+          <h4 className="font-medium mb-3 text-foreground">Status Legend & Instructions</h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-3">
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-green-600" />
-              <span>Available</span>
+              <span className="text-foreground">Available</span>
             </div>
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-red-600" />
-              <span>Damaged</span>
+              <span className="text-foreground">Damaged</span>
             </div>
             <div className="flex items-center gap-2">
               <Wrench className="h-4 w-4 text-yellow-600" />
-              <span>In Repair</span>
+              <span className="text-foreground">In Repair</span>
             </div>
             <div className="flex items-center gap-2">
               <Ban className="h-4 w-4 text-gray-600" />
-              <span>Unavailable</span>
+              <span className="text-foreground">Unavailable</span>
             </div>
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             <Move className="h-4 w-4 inline mr-1" />
             Drag products to move all items of that product together to a new location.
           </p>
         </div>
 
         {detailedProducts.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-center py-8 text-muted-foreground">
+            <Package className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <p>No products found for shelf mapping.</p>
           </div>
         )}
