@@ -137,7 +137,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
                   const IconComponent = typeDisplay.icon;
                   
                   return (
-                    <TableRow key={movement.id} className="hover:bg-gray-50">
+                    <TableRow key={movement.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                       <TableCell>
                         <Badge 
                           variant="outline"

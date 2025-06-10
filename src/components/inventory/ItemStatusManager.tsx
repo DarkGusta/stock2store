@@ -265,7 +265,7 @@ const ItemStatusManager = () => {
 
                       {/* Bulk Actions */}
                       {selectableItems.length > 0 && (
-                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="mb-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-800/50">
                           <h4 className="font-medium mb-3">Bulk Actions</h4>
                           <div className="flex items-center gap-4 mb-3">
                             <div className="flex items-center space-x-2">
@@ -327,7 +327,7 @@ const ItemStatusManager = () => {
                       <div className="space-y-3">
                         <h4 className="font-medium">Individual Items:</h4>
                         {inventory.serial_items.map((item) => (
-                          <div key={item.serial_id} className="flex items-center gap-4 p-3 bg-gray-50 rounded">
+                          <div key={item.serial_id} className="flex items-center gap-4 p-3 bg-gray-50 rounded dark:bg-gray-800/50">
                             {canChangeStatus(item.status) && (
                               <Checkbox
                                 checked={selectedItems.includes(item.serial_id)}
