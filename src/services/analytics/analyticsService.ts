@@ -23,11 +23,12 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
   try {
     console.log('Fetching analytics data...');
 
-    // Get total revenue from sold items with proper price calculation
+    // Get sold items with their prices - simplified query
     const { data: soldItems, error: soldItemsError } = await supabase
       .from('items')
       .select(`
         serial_id,
+        updated_at,
         price:price!inner(amount),
         inventory:inventory!inner(
           name, 
@@ -38,15 +39,16 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
 
     if (soldItemsError) {
       console.error('Error fetching sold items:', soldItemsError);
+      throw soldItemsError;
     }
 
     console.log('Sold items data:', soldItems);
 
     // Calculate total revenue from sold items
     const totalRevenue = soldItems?.reduce((sum, item) => {
-      const price = item.price?.amount || 0;
-      console.log('Item price:', price);
-      return sum + Number(price);
+      const price = Number(item.price?.amount || 0);
+      console.log('Processing item:', item.serial_id, 'price:', price);
+      return sum + price;
     }, 0) || 0;
 
     console.log('Calculated total revenue:', totalRevenue);
@@ -146,27 +148,21 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
       
-      // Get sold items for this month with their prices
-      const { data: monthlyItems, error: monthlyError } = await supabase
-        .from('items')
-        .select(`
-          price:price!inner(amount)
-        `)
-        .eq('status', 'sold')
-        .gte('updated_at', monthDate.toISOString())
-        .lt('updated_at', nextMonth.toISOString());
+      // Filter sold items by month and calculate revenue
+      const monthlyItems = soldItems?.filter(item => {
+        const itemDate = new Date(item.updated_at);
+        return itemDate >= monthDate && itemDate < nextMonth;
+      }) || [];
 
-      if (monthlyError) {
-        console.error('Error fetching monthly revenue:', monthlyError);
-      }
-
-      const monthRevenue = monthlyItems?.reduce((sum, item) => sum + Number(item.price?.amount || 0), 0) || 0;
+      const monthRevenue = monthlyItems.reduce((sum, item) => sum + Number(item.price?.amount || 0), 0);
       
       monthlyRevenue.push({
         month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
         revenue: monthRevenue
       });
     }
+
+    console.log('Monthly revenue data:', monthlyRevenue);
 
     const analytics: AnalyticsData = {
       totalRevenue,
@@ -178,7 +174,7 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       monthlyRevenue
     };
 
-    console.log('Analytics data fetched:', analytics);
+    console.log('Final analytics data:', analytics);
     return analytics;
 
   } catch (error) {

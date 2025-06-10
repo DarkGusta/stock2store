@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { DollarSign, Package, ShoppingCart, TrendingUp, Users, BarChart3, PieChart, LineChart } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,6 +81,22 @@ const Analytics = () => {
       case 'alert': return 'bg-orange-500';
       default: return 'bg-gray-500';
     }
+  };
+
+  // Custom tooltip component with proper dark mode styling
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background border border-border rounded-lg shadow-lg p-3">
+          <p className="text-foreground font-medium">{`${label}`}</p>
+          <p className="text-foreground">
+            <span className="text-blue-600">Revenue: </span>
+            {formatCurrency(payload[0].value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   if (error) {
@@ -209,11 +224,24 @@ const Analytics = () => {
                       <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                           <RechartsLineChart data={analyticsData?.monthlyRevenue || []}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="month" />
-                            <YAxis />
-                            <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-                            <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} />
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                            <XAxis 
+                              dataKey="month" 
+                              className="text-muted-foreground"
+                              tick={{ fill: 'currentColor' }}
+                            />
+                            <YAxis 
+                              className="text-muted-foreground"
+                              tick={{ fill: 'currentColor' }}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Line 
+                              type="monotone" 
+                              dataKey="revenue" 
+                              stroke="#2563eb" 
+                              strokeWidth={2}
+                              dot={{ fill: '#2563eb' }}
+                            />
                           </RechartsLineChart>
                         </ResponsiveContainer>
                       </div>
