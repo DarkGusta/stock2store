@@ -23,12 +23,16 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
   try {
     console.log('Fetching analytics data...');
 
-    // Get total revenue from sold items
+    // Get total revenue from sold items with proper price calculation
     const { data: soldItems, error: soldItemsError } = await supabase
       .from('items')
       .select(`
+        serial_id,
         price:price!inner(amount),
-        inventory:inventory!inner(name, product_type:product_types!inner(name))
+        inventory:inventory!inner(
+          name, 
+          product_type:product_types!inner(name)
+        )
       `)
       .eq('status', 'sold');
 
@@ -36,9 +40,16 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       console.error('Error fetching sold items:', soldItemsError);
     }
 
+    console.log('Sold items data:', soldItems);
+
+    // Calculate total revenue from sold items
     const totalRevenue = soldItems?.reduce((sum, item) => {
-      return sum + (item.price?.amount || 0);
+      const price = item.price?.amount || 0;
+      console.log('Item price:', price);
+      return sum + Number(price);
     }, 0) || 0;
+
+    console.log('Calculated total revenue:', totalRevenue);
 
     // Get products sold count
     const { count: productsSoldCount, error: productsSoldError } = await supabase
@@ -68,12 +79,12 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       console.error('Error fetching active users:', activeUsersError);
     }
 
-    // Get top performing products
+    // Get top performing products - group by product name and sum revenue
     const topProducts = soldItems
       ?.reduce((acc: any[], item) => {
         const productName = item.inventory?.name || 'Unknown Product';
         const category = item.inventory?.product_type?.name || 'Unknown';
-        const revenue = item.price?.amount || 0;
+        const revenue = Number(item.price?.amount || 0);
 
         const existingProduct = acc.find(p => p.name === productName);
         if (existingProduct) {
@@ -86,12 +97,14 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       ?.sort((a, b) => b.revenue - a.revenue)
       ?.slice(0, 3) || [];
 
+    console.log('Top products:', topProducts);
+
     // Get recent activity (orders and transactions)
     const { data: recentOrders, error: recentOrdersError } = await supabase
       .from('orders')
       .select('created_at, status')
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (recentOrdersError) {
       console.error('Error fetching recent orders:', recentOrdersError);
@@ -99,9 +112,9 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
 
     const { data: recentTransactions, error: recentTransactionsError } = await supabase
       .from('transactions')
-      .select('created_at, transaction_type')
+      .select('created_at, transaction_type, notes')
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (recentTransactionsError) {
       console.error('Error fetching recent transactions:', recentTransactionsError);
@@ -110,12 +123,12 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
     // Combine and format recent activity
     const recentActivity = [
       ...(recentOrders?.map(order => ({
-        event: `New order ${order.status}`,
+        event: `Order ${order.status}`,
         timestamp: new Date(order.created_at!),
         type: 'order' as const
       })) || []),
       ...(recentTransactions?.map(transaction => ({
-        event: transaction.transaction_type === 'sale' ? 'New order processed' : 
+        event: transaction.notes || transaction.transaction_type === 'sale' ? 'Order processed' : 
                transaction.transaction_type === 'status_change' ? 'Inventory updated' : 
                'Low stock alert',
         timestamp: new Date(transaction.created_at!),
@@ -123,7 +136,7 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       })) || [])
     ]
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-    .slice(0, 5);
+    .slice(0, 10);
 
     // Generate monthly revenue data for the last 12 months
     const monthlyRevenue = [];
@@ -133,18 +146,21 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
       
-      const { data: monthlyOrders, error: monthlyError } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'completed')
-        .gte('created_at', monthDate.toISOString())
-        .lt('created_at', nextMonth.toISOString());
+      // Get sold items for this month with their prices
+      const { data: monthlyItems, error: monthlyError } = await supabase
+        .from('items')
+        .select(`
+          price:price!inner(amount)
+        `)
+        .eq('status', 'sold')
+        .gte('updated_at', monthDate.toISOString())
+        .lt('updated_at', nextMonth.toISOString());
 
       if (monthlyError) {
         console.error('Error fetching monthly revenue:', monthlyError);
       }
 
-      const monthRevenue = monthlyOrders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const monthRevenue = monthlyItems?.reduce((sum, item) => sum + Number(item.price?.amount || 0), 0) || 0;
       
       monthlyRevenue.push({
         month: monthDate.toLocaleDateString('en-US', { month: 'short' }),

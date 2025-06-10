@@ -41,6 +41,40 @@ const Analytics = () => {
     return `${Math.floor(diffInMinutes / 1440)} days ago`;
   };
 
+  // Consolidate alerts by type
+  const getConsolidatedAlerts = () => {
+    if (!analyticsData?.recentActivity) return [];
+
+    const alertGroups: { [key: string]: { count: number, lastUpdate: Date, type: string } } = {};
+
+    analyticsData.recentActivity.forEach(activity => {
+      let alertType = '';
+      if (activity.event.toLowerCase().includes('low stock') || activity.event.toLowerCase().includes('stock')) {
+        alertType = 'Low stock items';
+      } else if (activity.event.toLowerCase().includes('order') || activity.event.toLowerCase().includes('processing')) {
+        alertType = 'Orders in process';
+      } else if (activity.event.toLowerCase().includes('inventory') || activity.event.toLowerCase().includes('updated')) {
+        alertType = 'Inventory updates';
+      } else {
+        alertType = 'System events';
+      }
+
+      if (!alertGroups[alertType]) {
+        alertGroups[alertType] = { count: 0, lastUpdate: activity.timestamp, type: activity.type };
+      }
+      alertGroups[alertType].count++;
+      if (activity.timestamp > alertGroups[alertType].lastUpdate) {
+        alertGroups[alertType].lastUpdate = activity.timestamp;
+      }
+    });
+
+    return Object.entries(alertGroups).map(([type, data]) => ({
+      event: `${type} - ${data.count} ${data.count === 1 ? 'item' : 'items'}`,
+      timestamp: data.lastUpdate,
+      type: data.type
+    }));
+  };
+
   const getActivityColor = (type: string) => {
     switch (type) {
       case 'order': return 'bg-green-500';
@@ -61,6 +95,8 @@ const Analytics = () => {
     );
   }
 
+  const consolidatedAlerts = getConsolidatedAlerts();
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Page Header */}
@@ -73,16 +109,16 @@ const Analytics = () => {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="bg-card dark:bg-card border-border dark:border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
-              <div className="text-2xl font-bold">{formatCurrency(analyticsData?.totalRevenue || 0)}</div>
+              <div className="text-2xl font-bold text-card-foreground">{formatCurrency(analyticsData?.totalRevenue || 0)}</div>
             )}
             <p className="text-xs text-muted-foreground">
               <TrendingUp className="inline h-3 w-3 mr-1 text-green-600" />
@@ -91,16 +127,16 @@ const Analytics = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card dark:bg-card border-border dark:border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products Sold</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">Products Sold</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold">{analyticsData?.productsSold || 0}</div>
+              <div className="text-2xl font-bold text-card-foreground">{analyticsData?.productsSold || 0}</div>
             )}
             <p className="text-xs text-muted-foreground">
               Items marked as sold
@@ -108,16 +144,16 @@ const Analytics = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card dark:bg-card border-border dark:border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">Total Orders</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold">{analyticsData?.totalOrders || 0}</div>
+              <div className="text-2xl font-bold text-card-foreground">{analyticsData?.totalOrders || 0}</div>
             )}
             <p className="text-xs text-muted-foreground">
               All orders in system
@@ -125,16 +161,16 @@ const Analytics = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card dark:bg-card border-border dark:border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">Active Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold">{analyticsData?.activeUsers || 0}</div>
+              <div className="text-2xl font-bold text-card-foreground">{analyticsData?.activeUsers || 0}</div>
             )}
             <p className="text-xs text-muted-foreground">
               Registered users
@@ -146,9 +182,9 @@ const Analytics = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="bg-card dark:bg-card border-border dark:border-border">
             <CardHeader>
-              <CardTitle>Analytics Overview</CardTitle>
+              <CardTitle className="text-card-foreground">Analytics Overview</CardTitle>
               <CardDescription>
                 Performance metrics and trends over time
               </CardDescription>
@@ -165,7 +201,7 @@ const Analytics = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <LineChart className="h-5 w-5 text-blue-600" />
-                      <h3 className="font-semibold">Revenue Trends</h3>
+                      <h3 className="font-semibold text-card-foreground">Revenue Trends</h3>
                     </div>
                     {isLoading ? (
                       <Skeleton className="h-64 w-full" />
@@ -189,7 +225,7 @@ const Analytics = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <PieChart className="h-5 w-5 text-green-600" />
-                      <h3 className="font-semibold">Product Performance</h3>
+                      <h3 className="font-semibold text-card-foreground">Product Performance</h3>
                     </div>
                     <div className="h-64 flex items-center justify-center bg-muted/20 rounded-lg border-2 border-dashed border-muted">
                       <div className="text-center space-y-2">
@@ -205,7 +241,7 @@ const Analytics = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5 text-orange-600" />
-                      <h3 className="font-semibold">Customer Analytics</h3>
+                      <h3 className="font-semibold text-card-foreground">Customer Analytics</h3>
                     </div>
                     <div className="h-64 flex items-center justify-center bg-muted/20 rounded-lg border-2 border-dashed border-muted">
                       <div className="text-center space-y-2">
@@ -224,9 +260,9 @@ const Analytics = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Top Products */}
-          <Card>
+          <Card className="bg-card dark:bg-card border-border dark:border-border">
             <CardHeader>
-              <CardTitle className="text-lg">Top Performing Products</CardTitle>
+              <CardTitle className="text-lg text-card-foreground">Top Performing Products</CardTitle>
               <CardDescription>Best sellers by revenue</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -239,18 +275,22 @@ const Analytics = () => {
                   <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        index === 0 ? 'bg-blue-100' : index === 1 ? 'bg-green-100' : 'bg-orange-100'
+                        index === 0 ? 'bg-blue-100 dark:bg-blue-900/30' : 
+                        index === 1 ? 'bg-green-100 dark:bg-green-900/30' : 
+                        'bg-orange-100 dark:bg-orange-900/30'
                       }`}>
                         <Package size={16} className={
-                          index === 0 ? 'text-blue-600' : index === 1 ? 'text-green-600' : 'text-orange-600'
+                          index === 0 ? 'text-blue-600 dark:text-blue-400' : 
+                          index === 1 ? 'text-green-600 dark:text-green-400' : 
+                          'text-orange-600 dark:text-orange-400'
                         } />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="font-medium text-sm text-card-foreground">{product.name}</p>
                         <p className="text-xs text-muted-foreground">{product.category}</p>
                       </div>
                     </div>
-                    <span className="font-semibold text-sm">{formatCurrency(product.revenue)}</span>
+                    <span className="font-semibold text-sm text-card-foreground">{formatCurrency(product.revenue)}</span>
                   </div>
                 ))
               ) : (
@@ -262,9 +302,9 @@ const Analytics = () => {
           </Card>
 
           {/* Recent Activity */}
-          <Card>
+          <Card className="bg-card dark:bg-card border-border dark:border-border">
             <CardHeader>
-              <CardTitle className="text-lg">Recent Activity</CardTitle>
+              <CardTitle className="text-lg text-card-foreground">Recent Activity</CardTitle>
               <CardDescription>Latest system events</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -272,12 +312,12 @@ const Analytics = () => {
                 Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))
-              ) : analyticsData?.recentActivity && analyticsData.recentActivity.length > 0 ? (
-                analyticsData.recentActivity.map((activity, index) => (
+              ) : consolidatedAlerts && consolidatedAlerts.length > 0 ? (
+                consolidatedAlerts.map((activity, index) => (
                   <div key={index} className="flex items-start gap-3 p-2">
                     <div className={`w-2 h-2 rounded-full mt-2 ${getActivityColor(activity.type)}`}></div>
                     <div>
-                      <p className="text-sm font-medium">{activity.event}</p>
+                      <p className="text-sm font-medium text-card-foreground">{activity.event}</p>
                       <p className="text-xs text-muted-foreground">{formatTimeAgo(activity.timestamp)}</p>
                     </div>
                   </div>
