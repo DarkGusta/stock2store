@@ -23,14 +23,13 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
   try {
     console.log('Fetching analytics data...');
 
-    // Get sold items with their prices - simplified query
+    // Get sold items with their prices - using a more straightforward approach
     const { data: soldItems, error: soldItemsError } = await supabase
       .from('items')
       .select(`
         serial_id,
         updated_at,
-        price:price!inner(amount),
-        inventory:inventory!inner(
+        inventory!inner(
           name, 
           product_type:product_types!inner(name)
         )
@@ -44,14 +43,43 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
 
     console.log('Sold items data:', soldItems);
 
-    // Calculate total revenue from sold items
-    const totalRevenue = soldItems?.reduce((sum, item) => {
-      const price = Number(item.price?.amount || 0);
-      console.log('Processing item:', item.serial_id, 'price:', price);
-      return sum + price;
-    }, 0) || 0;
+    // Get prices for sold items separately
+    const { data: prices, error: pricesError } = await supabase
+      .from('price')
+      .select('amount, inventory_id')
+      .eq('status', true);
+
+    if (pricesError) {
+      console.error('Error fetching prices:', pricesError);
+      throw pricesError;
+    }
+
+    console.log('Prices data:', prices);
+
+    // Create a map of inventory_id to price
+    const priceMap = new Map();
+    prices?.forEach(price => {
+      priceMap.set(price.inventory_id, price.amount);
+    });
+
+    // Calculate total revenue by matching items with their prices
+    let totalRevenue = 0;
+    const itemsWithRevenue: any[] = [];
+
+    soldItems?.forEach(item => {
+      const price = priceMap.get(item.inventory?.id);
+      if (price) {
+        const amount = Number(price);
+        totalRevenue += amount;
+        itemsWithRevenue.push({
+          ...item,
+          price: amount
+        });
+      }
+    });
 
     console.log('Calculated total revenue:', totalRevenue);
+    console.log('Items with revenue:', itemsWithRevenue);
 
     // Get products sold count
     const { count: productsSoldCount, error: productsSoldError } = await supabase
@@ -82,11 +110,11 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
     }
 
     // Get top performing products - group by product name and sum revenue
-    const topProducts = soldItems
+    const topProducts = itemsWithRevenue
       ?.reduce((acc: any[], item) => {
         const productName = item.inventory?.name || 'Unknown Product';
         const category = item.inventory?.product_type?.name || 'Unknown';
-        const revenue = Number(item.price?.amount || 0);
+        const revenue = item.price || 0;
 
         const existingProduct = acc.find(p => p.name === productName);
         if (existingProduct) {
@@ -149,12 +177,12 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
       
       // Filter sold items by month and calculate revenue
-      const monthlyItems = soldItems?.filter(item => {
+      const monthlyItems = itemsWithRevenue?.filter(item => {
         const itemDate = new Date(item.updated_at);
         return itemDate >= monthDate && itemDate < nextMonth;
       }) || [];
 
-      const monthRevenue = monthlyItems.reduce((sum, item) => sum + Number(item.price?.amount || 0), 0);
+      const monthRevenue = monthlyItems.reduce((sum, item) => sum + (item.price || 0), 0);
       
       monthlyRevenue.push({
         month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
