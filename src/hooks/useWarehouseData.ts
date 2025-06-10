@@ -26,6 +26,7 @@ export const useWarehouseData = () => {
           *,
           items!inner (
             serial_id,
+            status,
             inventory (
               name,
               id
@@ -33,7 +34,8 @@ export const useWarehouseData = () => {
           ),
           orders (
             order_number,
-            user_id
+            user_id,
+            status
           )
         `)
         .order('created_at', { ascending: false });
@@ -119,6 +121,8 @@ export const useWarehouseData = () => {
           quantity: 1, // Each transaction is for one item
           type: transaction.transaction_type === 'sale' ? 'out' : 'in',
           reason: transaction.notes || transaction.transaction_type,
+          itemStatus: transaction.items.status,
+          orderStatus: transaction.orders?.status || 'undefined',
           performedBy: performedByName,
           timestamp: new Date(transaction.created_at),
           userId: transaction.user_id,

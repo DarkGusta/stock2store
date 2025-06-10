@@ -31,7 +31,7 @@ const InventoryMovementsTable: React.FC<InventoryMovementsTableProps> = ({
     const transactionType = reasonLower;
     
     // Check for pending/reserved status first (when order is placed but not yet accepted)
-    if (transactionType.includes('pending') || transactionType.includes('reserved')) {
+    if (transactionType.includes('reserved') || transactionType.includes('pending')) {
       return { 
         label: 'Reserved', 
         color: 'bg-blue-500', 

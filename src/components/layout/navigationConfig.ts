@@ -62,12 +62,6 @@ export const navigationItems: NavItem[] = [
     icon: User, 
     roles: ['admin', 'warehouse', 'analyst', 'customer']
   },
-  { 
-    name: 'Settings', 
-    href: '/settings', 
-    icon: Settings, 
-    roles: ['admin', 'warehouse', 'analyst', 'customer']
-  },
 ];
 
 // Helper function to filter navigation items by role

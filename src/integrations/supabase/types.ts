@@ -581,7 +581,10 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_count_view: {
+        Row: {
+          total_users: number
+        }
     }
     Functions: {
       clear_session_user: {

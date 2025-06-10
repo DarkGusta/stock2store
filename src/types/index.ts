@@ -59,6 +59,8 @@ export interface InventoryMovement {
   reason: string;
   performedBy: string;
   timestamp: Date;
+  itemStatus?: string;
+  orderStatus?: string;
   userId?: string;
   userName?: string;
   userRole?: string;
